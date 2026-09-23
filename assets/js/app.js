@@ -3,7 +3,7 @@ const LOCAL_KEY='beautyStudioAdminV3Local';
 let adminToken='';
 
 const seed={
-  content:{studioName:'Beauty Studio',studioNameZh:'',studioNameMy:'',tagline:'NAILS & BEAUTY',taglineZh:'',taglineMy:'',city:'Your City',cityZh:'',cityMy:'',address:'Studio address coming soon',addressZh:'',addressMy:'',phone:'+00 000 000 000',hours:'By appointment',hoursZh:'',hoursMy:'',tiktok:'',whatsapp:'',telegram:'',bookingMessage:'Appointments are confirmed after your request is reviewed.',bookingMessageZh:'',bookingMessageMy:''},
+  content:{studioName:'Beauty Studio',studioNameZh:'',studioNameMy:'',tagline:'NAILS & BEAUTY',taglineZh:'',taglineMy:'',city:'Your City',cityZh:'',cityMy:'',address:'Studio address coming soon',addressZh:'',addressMy:'',phone:'+00 000 000 000',hours:'By appointment',hoursZh:'',hoursMy:'',tiktok:'',whatsapp:'',telegram:'',bookingMessage:'Appointments are confirmed after your request is reviewed.',bookingMessageZh:'',bookingMessageMy:'',galleryCategories:[{id:'simple',en:'Simple',zh:'简约',my:'ရိုးရှင်း'},{id:'elegant',en:'Elegant',zh:'优雅',my:'အလှပ'},{id:'trendy',en:'Trendy',zh:'潮流',my:'ခေတ်မီ'},{id:'cute',en:'Cute',zh:'可爱',my:'ချစ်စရာ'}]},
   services:[
     {id:'gel',name:'Gel Manicure',price:'From 00 MMK',duration:60,description:'Clean, glossy and effortless.'},
     {id:'art',name:'Custom Nail Art',price:'From 00 MMK',duration:90,description:'Personal details made for you.'},
@@ -276,6 +276,9 @@ function ensureRichEditorStyles(){
   .rich-list{display:grid;gap:9px}.rich-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.rich-row b{display:block;grid-column:1/-1;font-size:9px;color:#a08e85;letter-spacing:.08em}.rich-row input{min-width:0;border:1px solid #dfd1c8;background:#fff;border-radius:10px;padding:9px 10px;font-size:11px}
   .rich-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid rgba(125,91,79,.12)}.rich-actions button{border:0;border-radius:999px;padding:11px 18px;cursor:pointer;font-weight:700}.rich-actions .save{background:#302621;color:#fff}.rich-actions .cancel{background:#f0e6df;color:#302621}
   .rich-editor-note{padding:10px 12px;border-radius:12px;background:#f5e9e3;color:#7f6c63;font-size:10px;line-height:1.5;margin-top:12px}
+  .category-picker{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:center}.category-picker select{min-width:0}.category-manage{border:1px solid #dfd1c8;background:#f0e6df;color:#302621;border-radius:999px;padding:10px 12px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap}
+  .gallery-category-editor{display:grid;gap:10px}.gallery-category-editor-head,.gallery-category-editor-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center}.gallery-category-editor-head{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#9b6c69;font-weight:700}.gallery-category-editor-row input{min-width:0;border:1px solid #dfd1c8;background:#fff;border-radius:10px;padding:10px;font-size:11px}.category-remove,.category-add{border:1px solid #dfd1c8;background:#f0e6df;color:#302621;border-radius:999px;padding:9px 12px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap}.category-remove:disabled{opacity:.45;cursor:not-allowed}.category-add{justify-self:start;background:#302621;color:#fff;border-color:#302621}
+
   .translation-tools{display:grid;grid-template-columns:minmax(180px,220px) auto;gap:10px;align-items:end;padding:14px;border:1px solid #e1d2c9;background:#f7eee9;border-radius:16px;margin-bottom:18px}.translation-tool-main{display:grid;gap:6px}.translation-tool-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#9b6c69;font-weight:700}.translation-tool-main select{width:100%;box-sizing:border-box;border:1px solid #dfd1c8;background:#fff;border-radius:12px;padding:11px 12px;outline:0;color:#302621;font:inherit;font-size:12px}.auto-translate{border:0;border-radius:999px;background:#302621;color:#fff;padding:11px 16px;cursor:pointer;font-weight:700;white-space:nowrap}.auto-translate:disabled{opacity:.55;cursor:wait}.translation-tool-note{grid-column:1/-1;margin:0;color:#806f67;font-size:10px;line-height:1.5}
   @media(max-width:760px){.rich-grid,.rich-grid.two,.rich-row{grid-template-columns:1fr}.rich-editor{padding:18px;border-radius:20px}.rich-field.wide{grid-column:auto}}
   `;document.head.appendChild(st);
@@ -303,6 +306,9 @@ function showRichEditor(title, subtitle, html, onSave){
     const d=document.createElement('div');d.className='rich-editor-backdrop';
     d.innerHTML=`<div class="rich-editor"><div class="rich-editor-head"><div><p class="eyebrow">CONTENT EDITOR</p><h3>${esc(title)}</h3><p>${esc(subtitle)}</p></div><button class="rich-editor-close" type="button">×</button></div><div class="rich-editor-body">${html}</div><div class="rich-actions"><button type="button" class="cancel">Cancel</button><button type="button" class="save">Save changes</button></div></div>`;
     document.body.appendChild(d);
+    if(d.querySelector('.gallery-category-editor-list'))setupGalleryCategoryEditor(d);
+    const categoryManageBtn=d.querySelector('[data-manage-gallery-categories]');
+    if(categoryManageBtn)categoryManageBtn.onclick=async()=>{await manageGalleryCategories();const sel=d.querySelector('[data-rich-key="category"]');if(sel)sel.innerHTML=galleryCategoryOptions(sel.value)};
     const close=()=>{d.remove();resolve(false)};
     d.querySelector('.rich-editor-close').onclick=close;
     d.querySelector('.cancel').onclick=close;
@@ -495,6 +501,92 @@ function renderGallery(){
     if(await confirmUI('Delete this look?','This removes the gallery item from D1. The local preview photo will also be removed.')){data.gallery.splice(+b.dataset.deleteGallery,1);renderGallery();updateStats();await saveRemote('gallery')}
   });
 }
+
+function galleryCategories(){
+  const fallback=[
+    {id:'simple',en:'Simple',zh:'简约',my:'ရိုးရှင်း'},
+    {id:'elegant',en:'Elegant',zh:'优雅',my:'အလှပ'},
+    {id:'trendy',en:'Trendy',zh:'潮流',my:'ခေတ်မီ'},
+    {id:'cute',en:'Cute',zh:'可爱',my:'ချစ်စရာ'}
+  ];
+  const raw=data.content?.galleryCategories;
+  const list=Array.isArray(raw)&&raw.length?raw:fallback;
+  return list.map((c,i)=>({
+    id:String(c.id||slugifyCategory(c.en||c.zh||c.my||`category-${i+1}`)),
+    en:String(c.en||c.name||c.id||`Category ${i+1}`),
+    zh:String(c.zh||c.en||c.name||c.id||`分类 ${i+1}`),
+    my:String(c.my||c.en||c.name||c.id||`အမျိုးအစား ${i+1}`)
+  }));
+}
+function slugifyCategory(value){
+  const s=String(value||'').trim().toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  return s||`category-${Date.now()}`;
+}
+function normalizeGalleryCategory(value){
+  const raw=String(value||'').trim().toLowerCase();
+  const hit=galleryCategories().find(c=>[c.id,c.en,c.zh,c.my].some(v=>String(v).trim().toLowerCase()===raw));
+  return hit?.id || (raw ? slugifyCategory(raw) : galleryCategories()[0]?.id || 'simple');
+}
+function galleryCategoryOptions(selected){
+  const cats=galleryCategories(), current=normalizeGalleryCategory(selected);
+  return cats.map(c=>`<option value="${escAttr(c.id)}" ${c.id===current?'selected':''}>${esc(c.en)}</option>`).join('');
+}
+function setupGalleryCategoryEditor(d){
+  const list=d.querySelector('.gallery-category-editor-list'); if(!list)return;
+  const draft=galleryCategories().map(c=>({...c}));
+  const render=()=>{
+    list.innerHTML=draft.map((c,i)=>`
+      <div class="gallery-category-editor-row" data-category-row="${escAttr(c.id||'')}">
+        <input data-cat-en value="${escAttr(c.en||'')}" placeholder="English">
+        <input data-cat-zh value="${escAttr(c.zh||'')}" placeholder="中文">
+        <input data-cat-my value="${escAttr(c.my||'')}" placeholder="မြန်မာ">
+        <button type="button" class="category-remove" data-remove-category="${i}" ${draft.length<=1?'disabled':''}>Delete</button>
+      </div>`).join('');
+    list.querySelectorAll('[data-remove-category]').forEach(btn=>btn.onclick=()=>{
+      if(btn.disabled)return;
+      draft.splice(Number(btn.dataset.removeCategory),1); render();
+    });
+  };
+  render();
+  d.querySelector('[data-add-gallery-category]')?.addEventListener('click',()=>{
+    draft.push({id:'',en:'New Category',zh:'新分类',my:'အမျိုးအစားအသစ်'}); render();
+    list.lastElementChild?.querySelector('[data-cat-en]')?.focus();
+  });
+  d._galleryCategoryDraft=draft;
+}
+async function manageGalleryCategories(){
+  const html=`
+    <div class="rich-editor-note">The category ID stays stable when you rename a category, so existing gallery works keep their category. “All” is built in.</div>
+    <div class="gallery-category-editor">
+      <div class="gallery-category-editor-head"><span>English</span><span>中文</span><span>မြန်မာ</span><span></span></div>
+      <div class="gallery-category-editor-list"></div>
+      <button type="button" class="category-add" data-add-gallery-category>＋ Add category</button>
+    </div>`;
+  return showRichEditor('Gallery categories','Create or rename the categories used by Our Work.',html,async d=>{
+    const next=[], used=new Set();
+    d.querySelectorAll('.gallery-category-editor-row').forEach((row,i)=>{
+      const en=row.querySelector('[data-cat-en]')?.value.trim()||'';
+      const zh=row.querySelector('[data-cat-zh]')?.value.trim()||en;
+      const my=row.querySelector('[data-cat-my]')?.value.trim()||en;
+      const oldId=row.dataset.categoryRow||'';
+      if(!en&&!zh&&!my)return;
+      let id=oldId||slugifyCategory(en||zh||my||`category-${i+1}`);
+      let base=id, n=2; while(used.has(id)){id=`${base}-${n++}`;}
+      used.add(id); next.push({id,en:en||zh||my,zh:zh||en||my,my:my||en||zh});
+    });
+    if(!next.length){toast('Keep at least one category');return;}
+    data.content.galleryCategories=next;
+    data.gallery.forEach(g=>{
+      const raw=String(g.category||'').trim().toLowerCase();
+      const hit=next.find(c=>[c.id,c.en,c.zh,c.my].some(v=>String(v).trim().toLowerCase()===raw));
+      g.category=hit?.id || next[0].id;
+    });
+    fillContent(); renderGallery(); updateStats();
+    await saveRemote('content',data.content);
+    await saveRemote('gallery');
+  });
+}
+
 async function editGallery(i){
   const g=data.gallery[i]; if(!g)return;
   const html=`
@@ -512,7 +604,7 @@ async function editGallery(i){
     </div>
     <div class="rich-grid">
       ${richInput('Work number','number',g.number||String(i+1).padStart(2,'0'))}
-      ${richInput('Category','category',g.category||'simple')}
+      <div class="rich-field"><label>Category</label><div class="category-picker"><select data-rich-key="category">${galleryCategoryOptions(g.category)}</select><button type="button" class="category-manage" data-manage-gallery-categories>Manage</button></div></div>
       ${richInput('Recommended service ID','recommendedService',g.recommendedService||'')}
       ${richInput('Style name','styleName',g.styleName||g.title||'')}
       ${richInput('Price note','priceNote',g.priceNote||'')}
@@ -527,7 +619,7 @@ async function editGallery(i){
     <div class="rich-editor-note">The gallery photo file selected with the old Photo button is still browser-local. For a persistent D1 image, enter an image URL here. R2 upload can replace this later without changing the editor.</div>`;
   await showRichEditor('Edit work','Everything shown in the work card and detail modal can be managed here.',html,async d=>{
     readRichObject(d,g);
-    ['number','category','recommendedService','styleName','priceNote','image','alt'].forEach(k=>{const el=d.querySelector(`[data-rich-key="${k}"]`);if(el)g[k]=el.value.trim()});
+    ['number','category','recommendedService','styleName','priceNote','image','alt'].forEach(k=>{const el=d.querySelector(`[data-rich-key="${k}"]`);if(el)g[k]=el.value.trim()}); g.category=normalizeGalleryCategory(g.category);
     if(!g.title)g.title='New Look';
     renderGallery();updateStats();await saveRemote('gallery');
   });
