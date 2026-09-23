@@ -25,3 +25,9 @@ Deployment:
 ## v78 fixed
 - Fixed the startup bootstrap so the Admin connection dialog is actually opened.
 - Bumped the service-worker cache to v78 to prevent the previous blank-screen build from remaining cached.
+
+
+## v79 service/D1 fix
+- Restored the missing Services renderer/editor that caused the Services view to fail and made loadRemote report D1 unavailable after that exception.
+- Remote content requests are now independent so one endpoint failure cannot blank the other Admin sections.
+- Bumped service-worker cache to v79.
