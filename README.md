@@ -20,3 +20,8 @@ Deployment:
 2. Do not upload the ZIP itself into the repository.
 3. Wait for GitHub Pages to deploy, then hard refresh the site.
 4. Keep `ADMIN_TOKEN` out of frontend files; it remains entered at runtime and is sent to the Worker.
+
+
+## v78 fixed
+- Fixed the startup bootstrap so the Admin connection dialog is actually opened.
+- Bumped the service-worker cache to v78 to prevent the previous blank-screen build from remaining cached.

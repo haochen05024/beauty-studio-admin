@@ -688,5 +688,5 @@ function bindBookingUI(){
 }
 bindBookingUI();
 
-installLoginUI;
+openLogin();
 renderServices();renderGallery();renderMedia();updateStats();loadDashboard();loadRemote();
