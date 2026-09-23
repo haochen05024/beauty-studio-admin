@@ -52,3 +52,7 @@ Deployment:
 
 ## v85
 Added D1-backed customer contact link fields for Map, Availability, Call, TikTok, WhatsApp and Telegram.
+
+
+## v87
+Studio identity is now editable in English / 中文 / မြန်မာ, and customer-visible brand/contact copy follows the customer language selector.
