@@ -272,6 +272,7 @@ function ensureRichEditorStyles(){
   .rich-list{display:grid;gap:9px}.rich-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.rich-row b{display:block;grid-column:1/-1;font-size:9px;color:#a08e85;letter-spacing:.08em}.rich-row input{min-width:0;border:1px solid #dfd1c8;background:#fff;border-radius:10px;padding:9px 10px;font-size:11px}
   .rich-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid rgba(125,91,79,.12)}.rich-actions button{border:0;border-radius:999px;padding:11px 18px;cursor:pointer;font-weight:700}.rich-actions .save{background:#302621;color:#fff}.rich-actions .cancel{background:#f0e6df;color:#302621}
   .rich-editor-note{padding:10px 12px;border-radius:12px;background:#f5e9e3;color:#7f6c63;font-size:10px;line-height:1.5;margin-top:12px}
+  .translation-tools{display:grid;grid-template-columns:minmax(180px,220px) auto;gap:10px;align-items:end;padding:14px;border:1px solid #e1d2c9;background:#f7eee9;border-radius:16px;margin-bottom:18px}.translation-tool-main{display:grid;gap:6px}.translation-tool-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#9b6c69;font-weight:700}.translation-tool-main select{width:100%;box-sizing:border-box;border:1px solid #dfd1c8;background:#fff;border-radius:12px;padding:11px 12px;outline:0;color:#302621;font:inherit;font-size:12px}.auto-translate{border:0;border-radius:999px;background:#302621;color:#fff;padding:11px 16px;cursor:pointer;font-weight:700;white-space:nowrap}.auto-translate:disabled{opacity:.55;cursor:wait}.translation-tool-note{grid-column:1/-1;margin:0;color:#806f67;font-size:10px;line-height:1.5}
   @media(max-width:760px){.rich-grid,.rich-grid.two,.rich-row{grid-template-columns:1fr}.rich-editor{padding:18px;border-radius:20px}.rich-field.wide{grid-column:auto}}
   `;document.head.appendChild(st);
 }
@@ -302,8 +303,51 @@ function showRichEditor(title, subtitle, html, onSave){
     d.querySelector('.rich-editor-close').onclick=close;
     d.querySelector('.cancel').onclick=close;
     d.querySelector('.save').onclick=async()=>{await onSave(d);d.remove();resolve(true)};
+    const autoBtn=d.querySelector('[data-auto-translate]');
+    if(autoBtn)autoBtn.onclick=()=>autoTranslateServiceEditor(d,autoBtn);
     d.addEventListener('click',e=>{if(e.target===d)close()});
   });
+}
+
+const TRANSLATION_LANGS={en:{label:'English',code:'en'},zh:{label:'中文',code:'zh'},my:{label:'မြန်မာ',code:'my'}};
+function translationProperty(base,lang){return lang==='en'?base:lang==='zh'?base+'Zh':base+'My'}
+function getRichValue(d,key){const el=d.querySelector(`[data-rich-key="${CSS.escape(key)}"]`);return el?String(el.value||'').trim():''}
+function setRichValue(d,key,value){const el=d.querySelector(`[data-rich-key="${CSS.escape(key)}"]`);if(el)el.value=String(value||'').trim()}
+async function translateFreeText(text,from,to){
+  const q=String(text||'').trim(); if(!q||from===to)return q;
+  const url='https://api.mymemory.translated.net/get?'+new URLSearchParams({q,langpair:`${from}|${to}`}).toString();
+  const res=await fetch(url,{headers:{Accept:'application/json'}});
+  if(!res.ok)throw new Error(`Translation service ${res.status}`);
+  const body=await res.json();
+  const out=body?.responseData?.translatedText;
+  if(!out)throw new Error('No translation returned');
+  return String(out).replace(/\s+$/,'').trim();
+}
+async function autoTranslateServiceEditor(d,button){
+  const source=d.querySelector('[data-source-language]')?.value||'en';
+  const fields=['title','description','kicker','caption','idealFor','tags','points','highlights'];
+  const original={};
+  fields.forEach(base=>original[base]=getRichValue(d,translationProperty(base,source)));
+  const missing=fields.filter(base=>original[base]);
+  if(!missing.length){toast(`Enter the ${TRANSLATION_LANGS[source].label} original text first`);return}
+  const targets=Object.keys(TRANSLATION_LANGS).filter(x=>x!==source);
+  const old=button.textContent;button.disabled=true;button.textContent='Translating…';
+  let done=0,skipped=0,failed=0;
+  try{
+    for(const target of targets){
+      for(const base of fields){
+        const sourceText=original[base];
+        const targetKey=translationProperty(base,target);
+        if(!sourceText||getRichValue(d,targetKey)){skipped++;continue}
+        try{
+          const translated=await translateFreeText(sourceText,source,target);
+          setRichValue(d,targetKey,translated);done++;
+          await new Promise(r=>setTimeout(r,120));
+        }catch(err){failed++;}
+      }
+    }
+    if(failed){toast(`Generated ${done} translations · ${failed} could not be translated`)}else{toast(`Generated ${done} translations · existing text was kept`)}
+  }finally{button.disabled=false;button.textContent=old}
 }
 function csvLines(value){return String(value||'').split(/\n+/).map(x=>x.trim()).filter(Boolean)}
 function listEditor(title, values){
@@ -353,6 +397,18 @@ async function editService(i){
   const hz=Array.isArray(sv.highlightsZh)?sv.highlightsZh:[];
   const hm=Array.isArray(sv.highlightsMy)?sv.highlightsMy:[];
   const html=`
+    <div class="translation-tools">
+      <div class="translation-tool-main">
+        <div class="translation-tool-label">Original language</div>
+        <select data-source-language>
+          <option value="en" ${sv.title||sv.description?'selected':''}>English</option>
+          <option value="zh" ${!sv.title&&!sv.description&&(sv.titleZh||sv.descriptionZh)?'selected':''}>中文</option>
+          <option value="my" ${!sv.title&&!sv.description&&!sv.titleZh&&!sv.descriptionZh&&(sv.titleMy||sv.descriptionMy)?'selected':''}>မြန်မာ</option>
+        </select>
+      </div>
+      <button type="button" class="auto-translate" data-auto-translate>✨ Auto translate missing languages</button>
+      <p class="translation-tool-note">Fill one language first. The other two will be generated automatically. Existing translations are kept.</p>
+    </div>
     <div class="rich-grid">
       ${richInput('Service ID','id',sv.id||'')}
       ${richInput('Number','number',sv.number||String(i+1).padStart(2,'0'))}

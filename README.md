@@ -34,3 +34,10 @@ Deployment:
 - Restored the missing Services renderer/editor that caused the Services view to fail and made loadRemote report D1 unavailable after that exception.
 - Remote content requests are now independent so one endpoint failure cannot blank the other Admin sections.
 - Bumped service-worker cache to v79.
+
+
+## v81 service translation editor
+- Service editor now lets you choose one original language and auto-generate the other two languages.
+- Existing translations are preserved; only empty target fields are filled.
+- Added a lightweight public translation endpoint for the editor; manual edits remain supported.
+- Bumped the service-worker cache to v81.
