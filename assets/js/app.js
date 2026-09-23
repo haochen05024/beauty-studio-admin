@@ -140,7 +140,7 @@ async function saveRemote(kind, overridePayload){
   const map={
     content:['/api/content/settings',overridePayload ?? data.content],
     services:['/api/content/services',data.services],
-    gallery:['/api/content/gallery',data.gallery.map(({image,...g})=>g)],
+    gallery:['/api/content/gallery',data.gallery.map(g=>({ ...g, image: (typeof g.image === 'string' && !g.image.startsWith('data:')) ? g.image : '' }))],
     booking:['/api/content/booking-rules',data.booking]
   };
   const [path,payload]=map[kind];
@@ -172,7 +172,7 @@ async function loadRemote(){
     if(ss?.ok && Array.isArray(ss.body?.data)) data.services=ss.body.data;
     if(g?.ok && Array.isArray(g.body?.data)){
       const oldImages=new Map(data.gallery.map(x=>[String(x.id),x.image||'']));
-      data.gallery=g.body.data.map(x=>({...x,image:oldImages.get(String(x.id))||''}));
+      data.gallery=g.body.data.map(x=>({...x,image:x.image || oldImages.get(String(x.id)) || ''}));
     }
     if(b?.ok && b.body?.data) data.booking={...data.booking,...b.body.data};
     // v88 · migrate old booking copy into Booking Rules once.
