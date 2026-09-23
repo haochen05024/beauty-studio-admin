@@ -1,6 +1,6 @@
 
 
-Admin v80 fix: restored Services renderer/editor and made D1 content loading resilient to a single endpoint failure. Service Worker cache bumped to v80.
+Admin v82 fix: restored Services renderer/editor and made D1 content loading resilient to a single endpoint failure. Service Worker cache bumped to v82.
 # Beauty Studio Admin v74
 
 Complete GitHub Pages admin package.
@@ -30,14 +30,14 @@ Deployment:
 - Bumped the service-worker cache to v78 to prevent the previous blank-screen build from remaining cached.
 
 
-## v79 service/D1 fix
+## v82 service/D1 fix
 - Restored the missing Services renderer/editor that caused the Services view to fail and made loadRemote report D1 unavailable after that exception.
 - Remote content requests are now independent so one endpoint failure cannot blank the other Admin sections.
-- Bumped service-worker cache to v79.
+- Bumped service-worker cache to v82.
 
 
-## v81 service translation editor
+## v82 service translation editor
 - Service editor now lets you choose one original language and auto-generate the other two languages.
 - Existing translations are preserved; only empty target fields are filled.
 - Added a lightweight public translation endpoint for the editor; manual edits remain supported.
-- Bumped the service-worker cache to v81.
+- Bumped the service-worker cache to v82.

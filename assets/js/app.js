@@ -328,17 +328,16 @@ async function autoTranslateServiceEditor(d,button){
   const fields=['title','description','kicker','caption','idealFor','tags','points','highlights'];
   const original={};
   fields.forEach(base=>original[base]=getRichValue(d,translationProperty(base,source)));
-  const missing=fields.filter(base=>original[base]);
-  if(!missing.length){toast(`Enter the ${TRANSLATION_LANGS[source].label} original text first`);return}
+  const filled=fields.filter(base=>original[base]);
+  if(!filled.length){toast(`Enter the ${TRANSLATION_LANGS[source].label} original text first`);return}
   const targets=Object.keys(TRANSLATION_LANGS).filter(x=>x!==source);
   const old=button.textContent;button.disabled=true;button.textContent='Translating…';
-  let done=0,skipped=0,failed=0;
+  let done=0,failed=0;
   try{
     for(const target of targets){
-      for(const base of fields){
+      for(const base of filled){
         const sourceText=original[base];
         const targetKey=translationProperty(base,target);
-        if(!sourceText||getRichValue(d,targetKey)){skipped++;continue}
         try{
           const translated=await translateFreeText(sourceText,source,target);
           setRichValue(d,targetKey,translated);done++;
@@ -346,7 +345,7 @@ async function autoTranslateServiceEditor(d,button){
         }catch(err){failed++;}
       }
     }
-    if(failed){toast(`Generated ${done} translations · ${failed} could not be translated`)}else{toast(`Generated ${done} translations · existing text was kept`)}
+    if(failed){toast(`Generated ${done} translations · ${failed} failed`)}else{toast(`Generated ${done} translations for ${targets.length} languages`)}
   }finally{button.disabled=false;button.textContent=old}
 }
 function csvLines(value){return String(value||'').split(/\n+/).map(x=>x.trim()).filter(Boolean)}
@@ -355,7 +354,7 @@ function listEditor(title, values){
   return `<div class="rich-section"><h4>${esc(title)}</h4><p class="rich-hint">One item per line. Keep the same number of lines across languages when possible.</p><div class="rich-grid"><div class="rich-field"><label>English</label><textarea data-list-key="en">${esc(arr.join('\n'))}</textarea></div><div class="rich-field"><label>中文</label><textarea data-list-key="zh">${esc(values.zh?.join('\n')||'')}</textarea></div><div class="rich-field"><label>မြန်မာ</label><textarea data-list-key="my">${esc(values.my?.join('\n')||'')}</textarea></div></div></div>`;
 }
 $('#addService').onclick=async()=>{
-  data.services.push({id:'service-'+Date.now(),number:String(data.services.length+1).padStart(2,'0'),name:'New Service',title:'New Service',titleZh:'新服务',titleMy:'ဝန်ဆောင်မှုအသစ်',price:'From 00 MMK',duration:60,durationShort:'60 MIN',description:'Add a short description.',descriptionZh:'添加简短描述。',descriptionMy:'အကျဉ်းချုပ်ဖော်ပြချက် ထည့်ပါ။',kicker:'Service',kickerZh:'服务',kickerMy:'ဝန်ဆောင်မှု',tags:'Service, Detail, Personalized',tagsZh:'服务，细节，专属',tagsMy:'ဝန်ဆောင်မှု၊ အသေးစိတ်၊ စိတ်ကြိုက်',caption:'Made with care.',captionZh:'用心完成。',captionMy:'ဂရုတစိုက် ဖန်တီးပေးထားသည်။',idealFor:'Personalized care',idealForZh:'个性化护理',idealForMy:'စိတ်ကြိုက်ဂရုစိုက်မှု',points:['Studio preparation and finish','Estimated time: 60 minutes'],pointsZh:['工作室准备与收尾','预计时间：60 分钟'],pointsMy:['စတူဒီယို ပြင်ဆင်မှုနှင့် အချောသတ်','ခန့်မှန်းအချိန်: ၆၀ မိနစ်'],highlights:[['Service','Tailored studio service'],['60 min','Estimated appointment time'],['Detail','Personalized finish']],highlightsZh:[['服务','为你定制的工作室服务'],['60 分钟','预计预约时间'],['细节','专属收尾']],highlightsMy:[['ဝန်ဆောင်မှု','သင့်အတွက် စိတ်ကြိုက်ဝန်ဆောင်မှု'],['၆၀ မိနစ်','ခန့်မှန်းချိန်'],['အသေးစိတ်','စိတ်ကြိုက် အချောသတ်']]});
+  data.services.push({id:'service-'+Date.now(),number:String(data.services.length+1).padStart(2,'0'),name:'New Service',title:'New Service',titleZh:'',titleMy:'',price:'From 00 MMK',duration:60,durationShort:'60 MIN',description:'Add a short description.',descriptionZh:'',descriptionMy:'',kicker:'Service',kickerZh:'',kickerMy:'',tags:'Service, Detail, Personalized',tagsZh:'',tagsMy:'',caption:'Made with care.',captionZh:'',captionMy:'',idealFor:'Personalized care',idealForZh:'',idealForMy:'',points:['Studio preparation and finish','Estimated time: 60 minutes'],pointsZh:[],pointsMy:[],highlights:[['Service','Tailored studio service'],['60 min','Estimated appointment time'],['Detail','Personalized finish']],highlightsZh:[],highlightsMy:[]});
   renderServices();updateStats();await saveRemote('services');
 };
 
@@ -406,8 +405,8 @@ async function editService(i){
           <option value="my" ${!sv.title&&!sv.description&&!sv.titleZh&&!sv.descriptionZh&&(sv.titleMy||sv.descriptionMy)?'selected':''}>မြန်မာ</option>
         </select>
       </div>
-      <button type="button" class="auto-translate" data-auto-translate>✨ Auto translate missing languages</button>
-      <p class="translation-tool-note">Fill one language first. The other two will be generated automatically. Existing translations are kept.</p>
+      <button type="button" class="auto-translate" data-auto-translate>✨ Auto translate other 2 languages</button>
+      <p class="translation-tool-note">Choose one source language, then generate the other two from it. This will replace the other-language fields.</p>
     </div>
     <div class="rich-grid">
       ${richInput('Service ID','id',sv.id||'')}
