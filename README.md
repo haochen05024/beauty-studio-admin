@@ -1,3 +1,6 @@
+
+
+Admin v80 fix: restored Services renderer/editor and made D1 content loading resilient to a single endpoint failure. Service Worker cache bumped to v80.
 # Beauty Studio Admin v74
 
 Complete GitHub Pages admin package.

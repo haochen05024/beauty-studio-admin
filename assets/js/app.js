@@ -157,26 +157,38 @@ async function saveRemote(kind, overridePayload){
 async function loadRemote(){
   setApiStatus(false,'Connecting to D1…');
   try{
-    const [c,s,g,b]=await Promise.all([
+    const results=await Promise.allSettled([
       apiGet('/api/content/settings'),
       apiGet('/api/content/services'),
       apiGet('/api/content/gallery'),
       apiGet('/api/content/booking-rules')
     ]);
-    if(c.ok && c.body.data) data.content={...data.content,...c.body.data};
-    if(s.ok && Array.isArray(s.body.data)) data.services=s.body.data;
-    if(g.ok && Array.isArray(g.body.data)){
+    const [cR,sR,gR,bR]=results;
+    const c=cR.status==='fulfilled'?cR.value:null;
+    const ss=sR.status==='fulfilled'?sR.value:null;
+    const g=gR.status==='fulfilled'?gR.value:null;
+    const b=bR.status==='fulfilled'?bR.value:null;
+    if(c?.ok && c.body?.data) data.content={...data.content,...c.body.data};
+    if(ss?.ok && Array.isArray(ss.body?.data)) data.services=ss.body.data;
+    if(g?.ok && Array.isArray(g.body?.data)){
       const oldImages=new Map(data.gallery.map(x=>[String(x.id),x.image||'']));
       data.gallery=g.body.data.map(x=>({...x,image:oldImages.get(String(x.id))||''}));
     }
-    if(b.ok && b.body.data) data.booking={...data.booking,...b.body.data};
-    cacheLocal();
-    setApiStatus(true,token()?'D1 connected · Admin session':'D1 connected · Read-only');
-    fillContent();fillBooking();renderServices();renderGallery();updateStats();loadDashboard();
+    if(b?.ok && b.body?.data) data.booking={...data.booking,...b.body.data};
+    const okCount=[c,ss,g,b].filter(x=>x?.ok).length;
+    if(okCount>0){
+      cacheLocal();
+      setApiStatus(true,token()?'D1 connected · Admin session':'D1 connected · Read-only');
+      fillContent();fillBooking();renderServices();renderGallery();updateStats();loadDashboard();
+      if(okCount<4)toast(`D1 connected · ${okCount}/4 content areas loaded`);
+    }else{
+      throw new Error('No D1 content endpoint responded successfully');
+    }
     if(!token()) openLogin();
   }catch(e){
     setApiStatus(false,'D1 unavailable · Local fallback');
     toast('D1 could not be reached · using local fallback');
+    renderServices();renderGallery();updateStats();
     if(!token()) openLogin();
   }
 }
@@ -302,6 +314,81 @@ $('#addService').onclick=async()=>{
   data.services.push({id:'service-'+Date.now(),number:String(data.services.length+1).padStart(2,'0'),name:'New Service',title:'New Service',titleZh:'新服务',titleMy:'ဝန်ဆောင်မှုအသစ်',price:'From 00 MMK',duration:60,durationShort:'60 MIN',description:'Add a short description.',descriptionZh:'添加简短描述。',descriptionMy:'အကျဉ်းချုပ်ဖော်ပြချက် ထည့်ပါ။',kicker:'Service',kickerZh:'服务',kickerMy:'ဝန်ဆောင်မှု',tags:'Service, Detail, Personalized',tagsZh:'服务，细节，专属',tagsMy:'ဝန်ဆောင်မှု၊ အသေးစိတ်၊ စိတ်ကြိုက်',caption:'Made with care.',captionZh:'用心完成。',captionMy:'ဂရုတစိုက် ဖန်တီးပေးထားသည်။',idealFor:'Personalized care',idealForZh:'个性化护理',idealForMy:'စိတ်ကြိုက်ဂရုစိုက်မှု',points:['Studio preparation and finish','Estimated time: 60 minutes'],pointsZh:['工作室准备与收尾','预计时间：60 分钟'],pointsMy:['စတူဒီယို ပြင်ဆင်မှုနှင့် အချောသတ်','ခန့်မှန်းအချိန်: ၆၀ မိနစ်'],highlights:[['Service','Tailored studio service'],['60 min','Estimated appointment time'],['Detail','Personalized finish']],highlightsZh:[['服务','为你定制的工作室服务'],['60 分钟','预计预约时间'],['细节','专属收尾']],highlightsMy:[['ဝန်ဆောင်မှု','သင့်အတွက် စိတ်ကြိုက်ဝန်ဆောင်မှု'],['၆၀ မိနစ်','ခန့်မှန်းချိန်'],['အသေးစိတ်','စိတ်ကြိုက် အချောသတ်']]});
   renderServices();updateStats();await saveRemote('services');
 };
+
+function renderServices(){
+  const el=$('#serviceList');
+  if(!el)return;
+  if(!Array.isArray(data.services)||!data.services.length){
+    el.innerHTML='<div class="notice">No services yet. Click “Add service” to create the first service.</div>';
+    return;
+  }
+  el.innerHTML=data.services.map((sv,i)=>{
+    const title=sv.title||sv.name||'Untitled service';
+    const desc=sv.description||sv.descriptionZh||sv.descriptionMy||'';
+    const duration=sv.durationShort||((sv.duration||0)+' MIN');
+    const price=sv.price||'Price not set';
+    return `<article class="service-row">
+      <div><p class="eyebrow">${esc(sv.number||String(i+1).padStart(2,'0'))} · ${esc(sv.kicker||'SERVICE')}</p><h3>${esc(title)}</h3><p>${esc(desc)}</p></div>
+      <div class="service-meta"><strong>${esc(price)}</strong><br>${esc(duration)}</div>
+      <div class="service-meta">${esc((sv.tags||'').split(',').slice(0,2).join(' · ')||'Studio service')}</div>
+      <div class="card-actions"><button class="mini" data-edit-service="${i}">Edit</button><button class="mini" data-delete-service="${i}">Delete</button></div>
+    </article>`;
+  }).join('');
+  $$('[data-edit-service]').forEach(b=>b.onclick=()=>editService(+b.dataset.editService));
+  $$('[data-delete-service]').forEach(b=>b.onclick=async()=>{
+    const i=+b.dataset.deleteService;
+    if(await confirmUI('Delete this service?','This removes the service from the customer website.')){
+      data.services.splice(i,1);
+      renderServices();updateStats();await saveRemote('services');
+    }
+  });
+}
+
+async function editService(i){
+  const sv=data.services[i]; if(!sv)return;
+  const points=Array.isArray(sv.points)?sv.points:[];
+  const pointsZh=Array.isArray(sv.pointsZh)?sv.pointsZh:[];
+  const pointsMy=Array.isArray(sv.pointsMy)?sv.pointsMy:[];
+  const h=Array.isArray(sv.highlights)?sv.highlights:[];
+  const hz=Array.isArray(sv.highlightsZh)?sv.highlightsZh:[];
+  const hm=Array.isArray(sv.highlightsMy)?sv.highlightsMy:[];
+  const html=`
+    <div class="rich-grid">
+      ${richInput('Service ID','id',sv.id||'')}
+      ${richInput('Number','number',sv.number||String(i+1).padStart(2,'0'))}
+      ${richInput('Price','price',sv.price||'')}
+      ${richInput('Duration (minutes)','duration',sv.duration||60)}
+      ${richInput('Duration label','durationShort',sv.durationShort||'')}
+      ${richInput('Image URL (optional)','image',sv.image||'','input','wide')}
+      ${richInput('Alt text','alt',sv.alt||sv.title||'Beauty Studio service','input','wide')}
+    </div>
+    ${langField('Title','title',sv)}
+    ${langField('Short description','description',sv)}
+    ${langField('Kicker / category','kicker',sv)}
+    ${langField('Photo caption','caption',sv)}
+    ${langField('Ideal for','idealFor',sv)}
+    ${langField('Tags','tags',sv)}
+    <div class="rich-section"><h4>Included points</h4><div class="rich-grid">
+      ${richInput('English','points',points.join('\\n'),'textarea')}
+      ${richInput('中文','pointsZh',pointsZh.join('\\n'),'textarea')}
+      ${richInput('မြန်မာ','pointsMy',pointsMy.join('\\n'),'textarea')}
+    </div></div>
+    <div class="rich-section"><h4>Highlights</h4><p class="rich-hint">Use one “label | detail” pair per line, up to 3 lines.</p><div class="rich-grid">
+      ${richInput('English','highlights',h.map(x=>Array.isArray(x)?x.join(' | '):x).join('\\n'),'textarea')}
+      ${richInput('中文','highlightsZh',hz.map(x=>Array.isArray(x)?x.join(' | '):x).join('\\n'),'textarea')}
+      ${richInput('မြန်မာ','highlightsMy',hm.map(x=>Array.isArray(x)?x.join(' | '):x).join('\\n'),'textarea')}
+    </div></div>`;
+  await showRichEditor('Edit service','Manage everything shown in the customer service menu and service detail.',html,async d=>{
+    readRichObject(d,sv);
+    sv.duration=Math.max(0,parseInt(sv.duration||60,10)||60);
+    if(!sv.durationShort)sv.durationShort=`${sv.duration} MIN`;
+    const parseLines=(key)=>String(sv[key]||'').split(/\\n+/).map(x=>x.trim()).filter(Boolean);
+    ['points','pointsZh','pointsMy'].forEach(k=>sv[k]=parseLines(k));
+    ['highlights','highlightsZh','highlightsMy'].forEach(k=>sv[k]=parseLines(k).slice(0,3).map(x=>{const p=x.split('|');return [String(p.shift()||'').trim(),String(p.join('|')||'').trim()]}));
+    sv.name=sv.title||sv.name||'New Service';
+    renderServices();updateStats();await saveRemote('services');
+  });
+}
 
 function renderGallery(){
   $('#galleryGrid').innerHTML=data.gallery.map((g,i)=>`
