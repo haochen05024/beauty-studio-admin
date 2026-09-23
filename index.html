@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#8f6258">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg">
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+<title>Beauty Studio Admin</title>
+<link rel="stylesheet" href="assets/css/style.css"><style>.app-shell{visibility:hidden}.admin-locked .app-shell{visibility:hidden}</style>
+</head>
+<body>
+<div class="app-shell">
+<aside class="sidebar" id="sidebar">
+<div class="brand"><div class="brand-mark">BS</div><div><strong>Beauty Studio</strong><span>Admin Studio</span></div></div>
+<nav>
+<button class="nav-item active" data-view="overview">Overview</button>
+<button class="nav-item" data-view="content">Studio Content</button>
+<button class="nav-item" data-view="services">Services</button>
+<button class="nav-item" data-view="gallery">Gallery</button>
+<button class="nav-item" data-view="media">Media</button>
+<button class="nav-item" data-view="bookings">Bookings</button>
+<button class="nav-item" data-view="support">Messages <span id="supportNavBadge" class="nav-badge" hidden>0</span></button>
+<button class="nav-item" data-view="booking">Booking Rules</button>
+</nav>
+<div class="sidebar-foot"><span class="status-dot"></span> Connecting to D1…</div>
+</aside>
+<main class="main">
+<header class="topbar"><button class="menu" id="menu">☰</button><div><p class="eyebrow">BEAUTY STUDIO</p><h1 id="pageTitle">Overview</h1></div><button class="preview" id="preview">Open customer site ↗</button></header>
+
+<section id="view-overview" class="view active">
+<div class="hero-card"><div><p class="eyebrow">CONTROL CENTER</p><h2>Your studio, in one place.</h2><p>Manage the content that syncs to the customer website through Cloudflare Worker and D1.</p><button class="primary" data-go="content">Edit studio content →</button></div><div class="hero-number">01</div></div>
+<div class="stats"><article><span>Services</span><strong id="statServices">3</strong></article><article><span>Gallery looks</span><strong id="statGallery">5</strong></article><article><span>Media slots</span><strong>8</strong></article><article><span>Booking</span><strong id="statBooking">Open</strong></article></div>
+<div class="section-head"><div><p class="eyebrow">QUICK ACTIONS</p><h3>Keep the studio fresh.</h3></div></div>
+<div class="quick-grid"><button data-go="gallery"><b>＋</b><span>Add a new look</span><small>Gallery</small></button><button data-go="services"><b>✦</b><span>Update a service</span><small>Pricing & timing</small></button><button data-go="media"><b>▧</b><span>Replace a photo</span><small>Media library</small></button><button data-go="booking"><b>◷</b><span>Adjust availability</span><small>Booking rules</small></button></div>
+</section>
+
+<section id="view-content" class="view"><div class="section-head"><div><p class="eyebrow">STUDIO PROFILE</p><h2>Studio Content</h2><p>These details are stored in D1 and become the single source of truth.</p></div><button class="primary save">Save changes</button></div><form class="panel form-grid" id="contentForm"><label>Studio name<input name="studioName"></label><label>City<input name="city"></label><label class="wide">Address<input name="address"></label><label>Phone<input name="phone"></label><label>Hours<input name="hours"></label><label>TikTok<input name="tiktok" placeholder="https://www.tiktok.com/@yourstudio"></label><label>WhatsApp<input name="whatsapp" placeholder="https://wa.me/..."></label><label>Telegram<input name="telegram" placeholder="https://t.me/..."></label><label class="wide">Booking message<textarea name="bookingMessage"></textarea></label></form></section>
+
+<section id="view-services" class="view"><div class="section-head"><div><p class="eyebrow">SERVICE MENU</p><h2>Services</h2><p>Edit the menu shown on the customer website.</p></div><button class="primary" id="addService">＋ Add service</button></div><div class="service-list" id="serviceList"></div></section>
+
+<section id="view-gallery" class="view"><div class="section-head"><div><p class="eyebrow">PORTFOLIO</p><h2>Gallery</h2><p>Manage looks, categories and descriptions. Photos remain local until R2 is available.</p></div><button class="primary" id="addGallery">＋ Add look</button></div><div class="gallery-grid" id="galleryGrid"></div></section>
+
+<section id="view-media" class="view"><div class="section-head"><div><p class="eyebrow">MEDIA LIBRARY</p><h2>Media slots</h2><p>Temporary media stays in this browser. Cloudflare R2 can be connected later without changing these slots.</p></div></div><div class="media-grid" id="mediaGrid"></div></section>
+
+
+<section id="view-bookings" class="view">
+  <div class="section-head"><div><p class="eyebrow">APPOINTMENTS</p><h2>Bookings</h2><p>Customer requests received from the website.</p></div><button class="primary" id="refreshBookings">Refresh</button></div>
+  <div class="booking-toolbar"><div class="booking-filters" id="bookingFilters"><button class="active" data-booking-filter="all">All</button><button data-booking-filter="pending">Pending</button><button data-booking-filter="confirmed">Confirmed</button><button data-booking-filter="completed">Completed</button><button data-booking-filter="cancelled">Cancelled</button></div><span id="bookingCount" class="booking-count">0 requests</span></div>
+  <div id="bookingList" class="booking-admin-list"><div class="booking-empty">Loading booking requests…</div></div>
+</section>
+
+<section id="view-support" class="view">
+  <div class="section-head"><div><p class="eyebrow">CUSTOMER CARE</p><h2>Messages</h2><p>Private conversations from the Need Help button. Each conversation stays linked to the customer's ID.</p></div><button class="primary" id="refreshSupport">Refresh</button></div>
+  <div class="support-admin-layout">
+    <div class="support-conversation-list" id="supportConversationList"><div class="support-admin-empty">Loading conversations…</div></div>
+    <div class="support-thread" id="supportThread"><div class="support-admin-empty">Select a conversation to reply.</div></div>
+  </div>
+</section>
+
+<section id="view-booking" class="view"><div class="section-head"><div><p class="eyebrow">APPOINTMENTS</p><h2>Booking Rules</h2><p>Control when customers can request appointments.</p></div><button class="primary save">Save changes</button></div><form class="panel form-grid" id="bookingForm"><label>Opening time<input type="time" name="openingTime"></label><label>Closing time<input type="time" name="closingTime"></label><label>Slot interval<select name="slotMinutes"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option></select></label><label>Advance days<input type="number" name="advanceDays" min="1" max="90"></label><label>Minimum lead time<input type="number" name="minLeadMinutes" min="0"></label><label>Booking status<select name="status"><option value="open">Open</option><option value="paused">Paused</option></select></label></form><div class="notice">Customer website remains independent. Studio content, services, gallery metadata and booking rules now use D1 when saved.</div></section>
+</main>
+</div>
+<div class="toast" id="toast"></div>
+<div class="install-modal" id="installModal" aria-hidden="true">
+  <div class="install-backdrop" data-install-close></div>
+  <section class="install-sheet" role="dialog" aria-modal="true" aria-labelledby="installTitle">
+    <button class="install-close" type="button" data-install-close>×</button>
+    <div class="install-icon"><img src="assets/icons/icon-192.png" alt="Beauty Studio Admin"></div>
+    <p class="eyebrow">BEAUTY STUDIO ADMIN</p>
+    <h2 id="installTitle">Add your studio to this device</h2>
+    <p class="install-sub">Use Admin like an app from your desktop or home screen. Your secure Admin login stays the same.</p>
+    <div class="install-platform" id="installPlatform"></div>
+    <button class="primary install-now" id="installNow" type="button" hidden>Install now</button>
+    <p class="install-note">No App Store or Play Store download is required.</p>
+  </section>
+</div>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/pwa.js"></script>
+</body></html>
