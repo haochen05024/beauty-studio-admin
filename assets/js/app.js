@@ -305,6 +305,8 @@ function showRichEditor(title, subtitle, html, onSave){
     d.querySelector('.save').onclick=async()=>{await onSave(d);d.remove();resolve(true)};
     const autoBtn=d.querySelector('[data-auto-translate]');
     if(autoBtn)autoBtn.onclick=()=>autoTranslateServiceEditor(d,autoBtn);
+    const galleryAutoBtn=d.querySelector('[data-auto-translate-gallery]');
+    if(galleryAutoBtn)galleryAutoBtn.onclick=()=>autoTranslateGalleryEditor(d,galleryAutoBtn);
     d.addEventListener('click',e=>{if(e.target===d)close()});
   });
 }
@@ -341,6 +343,29 @@ async function autoTranslateServiceEditor(d,button){
         try{
           const translated=await translateFreeText(sourceText,source,target);
           setRichValue(d,targetKey,translated);done++;
+          await new Promise(r=>setTimeout(r,120));
+        }catch(err){failed++;}
+      }
+    }
+    if(failed){toast(`Generated ${done} translations · ${failed} failed`)}else{toast(`Generated ${done} translations for ${targets.length} languages`)}
+  }finally{button.disabled=false;button.textContent=old}
+}
+async function autoTranslateGalleryEditor(d,button){
+  const source=d.querySelector('[data-source-language]')?.value||'en';
+  const fields=['title','style','description','mood','note'];
+  const original={};
+  fields.forEach(base=>original[base]=getRichValue(d,translationProperty(base,source)));
+  const filled=fields.filter(base=>original[base]);
+  if(!filled.length){toast(`Enter the ${TRANSLATION_LANGS[source].label} original text first`);return}
+  const targets=Object.keys(TRANSLATION_LANGS).filter(x=>x!==source);
+  const old=button.textContent;button.disabled=true;button.textContent='Translating…';
+  let done=0,failed=0;
+  try{
+    for(const target of targets){
+      for(const base of filled){
+        try{
+          const translated=await translateFreeText(original[base],source,target);
+          setRichValue(d,translationProperty(base,target),translated);done++;
           await new Promise(r=>setTimeout(r,120));
         }catch(err){failed++;}
       }
@@ -469,6 +494,18 @@ function renderGallery(){
 async function editGallery(i){
   const g=data.gallery[i]; if(!g)return;
   const html=`
+    <div class="translation-tools">
+      <div class="translation-tool-main">
+        <div class="translation-tool-label">Original language</div>
+        <select data-source-language>
+          <option value="en" ${g.title||g.description?'selected':''}>English</option>
+          <option value="zh" ${!g.title&&!g.description&&(g.titleZh||g.descriptionZh)?'selected':''}>中文</option>
+          <option value="my" ${!g.title&&!g.description&&!g.titleZh&&!g.descriptionZh&&(g.titleMy||g.descriptionMy)?'selected':''}>မြန်မာ</option>
+        </select>
+      </div>
+      <button type="button" class="auto-translate" data-auto-translate-gallery>✨ Auto translate other 2 languages</button>
+      <p class="translation-tool-note">Choose one source language, then generate the other two from it. This will replace the other-language fields.</p>
+    </div>
     <div class="rich-grid">
       ${richInput('Work number','number',g.number||String(i+1).padStart(2,'0'))}
       ${richInput('Category','category',g.category||'simple')}
