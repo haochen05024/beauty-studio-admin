@@ -48,3 +48,7 @@ Deployment:
 - Language preference persists in localStorage.
 - Translates the Admin interface labels without changing D1 content data.
 - Customer site, Worker, D1 schema, and Admin token are unchanged.
+
+
+## v85
+Added D1-backed customer contact link fields for Map, Availability, Call, TikTok, WhatsApp and Telegram.
