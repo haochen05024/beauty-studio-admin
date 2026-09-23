@@ -5,16 +5,16 @@ let adminToken='';
 const seed={
   content:{studioName:'Beauty Studio',city:'Your City',address:'Studio address coming soon',phone:'+00 000 000 000',hours:'By appointment',tiktok:'',whatsapp:'',telegram:'',bookingMessage:'Appointments are confirmed after your request is reviewed.'},
   services:[
-    {id:'gel',name:'Gel Manicure',nameZh:'凝胶美甲',nameMy:'ဂျယ်လ် လက်သည်းအလှပြင်',price:'From 00 MMK',duration:60,description:'Clean, glossy and effortless.',descriptionZh:'干净、精致且持久的日常美甲。',descriptionMy:'နေ့စဉ်အတွက် သန့်ရှင်းသပ်ရပ်ပြီး ကြာရှည်ခံတဲ့ လက်သည်းအလှပြင်။'},
-    {id:'art',name:'Custom Nail Art',nameZh:'定制美甲',nameMy:'စိတ်ကြိုက် လက်သည်းအလှဒီဇိုင်း',price:'From 00 MMK',duration:90,description:'Personal details made for you.',descriptionZh:'为你定制的颜色、设计与细节。',descriptionMy:'သင့်အတွက် စိတ်ကြိုက်အရောင်၊ ဒီဇိုင်းနဲ့ အသေးစိတ်များ။'},
-    {id:'extensions',name:'Extensions',nameZh:'延长甲',nameMy:'လက်သည်းတိုးချဲ့ခြင်း',price:'From 00 MMK',duration:120,description:'Length with a polished finish.',descriptionZh:'围绕你的自然风格打造漂亮的长度与甲型。',descriptionMy:'သင့်စတိုင်နဲ့လိုက်ဖက်တဲ့ လှပတဲ့အရှည်နဲ့ ပုံစံကို ဖန်တီးပေးပါတယ်。'}
+    {id:'gel',name:'Gel Manicure',price:'From 00 MMK',duration:60,description:'Clean, glossy and effortless.'},
+    {id:'art',name:'Custom Nail Art',price:'From 00 MMK',duration:90,description:'Personal details made for you.'},
+    {id:'extensions',name:'Extensions',price:'From 00 MMK',duration:120,description:'Length with a polished finish.'}
   ],
   gallery:[
-    {id:1,title:'Soft Pearl',titleZh:'柔光珍珠',titleMy:'ပျော့ပျောင်း ပုလဲအလင်း',category:'Elegant',categoryZh:'优雅',categoryMy:'လှပသပ်ရပ်',description:'Soft, clean pearl glow.',image:''},
-    {id:2,title:'Milky Nude',titleZh:'奶油裸色',titleMy:'နို့ရောင် Nude',category:'Simple',categoryZh:'简约',categoryMy:'ရိုးရှင်း',description:'Quiet and wearable.',image:''},
-    {id:3,title:'Rose Chrome',titleZh:'玫瑰镜面',titleMy:'Rose Chrome',category:'Trendy',categoryZh:'潮流',categoryMy:'ခေတ်မီ',description:'A polished rose-metal finish.',image:''},
-    {id:4,title:'Little Hearts',titleZh:'小心心',titleMy:'နှလုံးသားလေးများ',category:'Cute',categoryZh:'可爱',categoryMy:'ချစ်စရာ',description:'Tiny details with a playful mood.',image:''},
-    {id:5,title:'Quiet Luxury',titleZh:'静奢',titleMy:'အေးချမ်းခမ်းနားမှု',category:'Elegant',categoryZh:'优雅',categoryMy:'လှပသပ်ရပ်',description:'Minimal, refined and timeless.',image:''}
+    {id:1,title:'Soft Pearl',category:'Elegant',description:'Soft, clean pearl glow.',image:''},
+    {id:2,title:'Milky Nude',category:'Simple',description:'Quiet and wearable.',image:''},
+    {id:3,title:'Rose Chrome',category:'Trendy',description:'A polished rose-metal finish.',image:''},
+    {id:4,title:'Little Hearts',category:'Cute',description:'Tiny details with a playful mood.',image:''},
+    {id:5,title:'Quiet Luxury',category:'Elegant',description:'Minimal, refined and timeless.',image:''}
   ],
   booking:{openingTime:'10:00',closingTime:'18:00',slotMinutes:30,advanceDays:30,minLeadMinutes:60,status:'open'},
   media:{}
@@ -99,7 +99,7 @@ function installLoginUI(){
     setToken(v);
     $('#apiLoginError').style.display='none';
     const ok=await testAdminToken();
-    if(ok){wrap.remove();setAdminLocked(false);setApiStatus(true,'D1 connected · Admin session');toast('Admin connected');}
+    if(ok){wrap.remove();setAdminLocked(false);setApiStatus(true,'D1 connected · Admin session');showView('overview');await loadRemote();showView('overview');await loadDashboard();toast('Admin connected');}
     else{clearToken();$('#apiLoginError').textContent='Token rejected. Please check the Cloudflare Secret and try again.';$('#apiLoginError').style.display='block';}
   };
   $('#apiLoginCancel').onclick=()=>wrap.remove();
@@ -172,7 +172,7 @@ async function loadRemote(){
     if(b.ok && b.body.data) data.booking={...data.booking,...b.body.data};
     cacheLocal();
     setApiStatus(true,token()?'D1 connected · Admin session':'D1 connected · Read-only');
-    fillContent();fillBooking();renderServices();renderGallery();updateStats();
+    fillContent();fillBooking();renderServices();renderGallery();updateStats();loadDashboard();
     if(!token()) openLogin();
   }catch(e){
     setApiStatus(false,'D1 unavailable · Local fallback');
@@ -192,11 +192,17 @@ function showView(v){
   if(v==='content')fillContent();
   if(v==='booking')fillBooking();
   if(v==='bookings')loadBookings();
+  if(v==='support')loadSupportConversations();
+  if(v==='overview')loadDashboard();
 }
 $$('.nav-item').forEach(b=>b.onclick=()=>showView(b.dataset.view));
 $$('[data-go]').forEach(b=>b.onclick=()=>showView(b.dataset.go));
 $('#menu').onclick=()=>$('#sidebar').classList.toggle('open');
-$('#preview').onclick=()=>toast('Customer site preview will be connected next.');
+document.addEventListener('click',e=>{if(!e.target.closest('#sidebar')&&!e.target.closest('#menu'))$('#sidebar').classList.remove('open')});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('#sidebar').classList.remove('open')});
+const CUSTOMER_SITE_URL='https://haochen05024.github.io/beauty-studio/';
+$('#preview').onclick=()=>window.open(CUSTOMER_SITE_URL,'_blank','noopener,noreferrer');
+$('#preview').setAttribute('aria-label','Open customer website in a new tab');
 
 function fillContent(){
   const f=$('#contentForm');
@@ -239,34 +245,62 @@ $$('.save').forEach(b=>b.onclick=async()=>{
   }
 });
 
-function renderServices(){
-  $('#serviceList').innerHTML=data.services.map((s,i)=>`
-  <div class="service-row">
-    <div><h3>${esc(s.name)}</h3><p>${esc(s.description)}</p></div>
-    <div class="service-meta">${esc(s.price)}</div>
-    <div class="service-meta">${s.duration} min</div>
-    <button class="mini" data-edit-service="${i}">Edit</button>
-    <button class="mini danger" data-delete-service="${i}">Delete</button>
-  </div>`).join('');
-  $$('[data-edit-service]').forEach(b=>b.onclick=()=>editService(+b.dataset.editService));
-  $$('[data-delete-service]').forEach(b=>b.onclick=async()=>{
-    const i=+b.dataset.deleteService, s=data.services[i];
-    if(await confirmUI('Delete service?',`Delete "${s.name}" from the service menu? This change will be saved to D1.`)){
-      data.services.splice(i,1);renderServices();updateStats();await saveRemote('services');
-    }
+/* v78 — full customer-content editor
+   Services and Our Work are now editable field-by-field, including EN / 中文 /
+   မြန်မာ content used by the customer's live language switcher. */
+function ensureRichEditorStyles(){
+  if($('#richEditorStyles'))return;
+  const st=document.createElement('style');st.id='richEditorStyles';st.textContent=`
+  .rich-editor-backdrop{position:fixed;inset:0;z-index:10020;background:rgba(38,29,25,.55);backdrop-filter:blur(8px);display:grid;place-items:center;padding:18px}
+  .rich-editor{width:min(920px,100%);max-height:min(900px,94vh);overflow:auto;background:#fffaf6;border:1px solid #dfd1c8;border-radius:26px;box-shadow:0 30px 100px rgba(40,25,20,.28);padding:24px}
+  .rich-editor-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}.rich-editor-head h3{font:500 30px Georgia,serif;color:#302621;margin:4px 0 5px}.rich-editor-head p{margin:0;color:#81746d;font-size:12px;line-height:1.6}
+  .rich-editor-close{border:1px solid #dfd1c8;background:#f2e7e0;color:#302621;width:38px;height:38px;border-radius:50%;font-size:22px;cursor:pointer}
+  .rich-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.rich-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.rich-field{display:grid;gap:6px}.rich-field.wide{grid-column:1/-1}.rich-field label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#9b6c69;font-weight:700}.rich-field input,.rich-field textarea,.rich-field select{width:100%;box-sizing:border-box;border:1px solid #dfd1c8;background:#fff;border-radius:12px;padding:11px 12px;outline:0;color:#302621;font:inherit;font-size:12px}.rich-field textarea{min-height:76px;resize:vertical;line-height:1.55}
+  .rich-section{margin-top:18px;padding-top:18px;border-top:1px solid rgba(125,91,79,.12)}.rich-section h4{margin:0 0 10px;font:500 18px Georgia,serif;color:#302621}.rich-hint{margin:0 0 12px;color:#8b7b73;font-size:11px;line-height:1.55}
+  .rich-list{display:grid;gap:9px}.rich-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.rich-row b{display:block;grid-column:1/-1;font-size:9px;color:#a08e85;letter-spacing:.08em}.rich-row input{min-width:0;border:1px solid #dfd1c8;background:#fff;border-radius:10px;padding:9px 10px;font-size:11px}
+  .rich-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid rgba(125,91,79,.12)}.rich-actions button{border:0;border-radius:999px;padding:11px 18px;cursor:pointer;font-weight:700}.rich-actions .save{background:#302621;color:#fff}.rich-actions .cancel{background:#f0e6df;color:#302621}
+  .rich-editor-note{padding:10px 12px;border-radius:12px;background:#f5e9e3;color:#7f6c63;font-size:10px;line-height:1.5;margin-top:12px}
+  @media(max-width:760px){.rich-grid,.rich-grid.two,.rich-row{grid-template-columns:1fr}.rich-editor{padding:18px;border-radius:20px}.rich-field.wide{grid-column:auto}}
+  `;document.head.appendChild(st);
+}
+function escAttr(v){return esc(v).replace(/`/g,'&#96;')}
+function richInput(label,key,value='',type='input',cls=''){
+  return `<div class="rich-field ${cls}"><label>${esc(label)}</label>${type==='textarea'?`<textarea data-rich-key="${escAttr(key)}">${esc(value)}</textarea>`:`<input data-rich-key="${escAttr(key)}" value="${escAttr(value)}">`}</div>`;
+}
+function langField(label,base,obj,cls=''){
+  return `<div class="rich-section"><h4>${esc(label)}</h4><div class="rich-grid">
+    ${richInput('English',base,obj?.[base]||'', 'textarea',cls)}
+    ${richInput('中文',base+'Zh',obj?.[base+'Zh']||'', 'textarea',cls)}
+    ${richInput('မြန်မာ',base+'My',obj?.[base+'My']||'', 'textarea',cls)}
+  </div></div>`;
+}
+function readRichObject(d, obj){
+  d.querySelectorAll('[data-rich-key]').forEach(el=>{
+    const k=el.dataset.richKey; const v=el.value.trim();
+    if(v)obj[k]=v; else delete obj[k];
   });
 }
-async function editService(i){
-  const s=data.services[i];
-  const values=await localizedEditor('Edit service',[['name','English name',s.name||''],['nameZh','中文名称',s.nameZh||''],['nameMy','မြန်မာအမည်',s.nameMy||''],['description','English description',s.description||''],['descriptionZh','中文描述',s.descriptionZh||''],['descriptionMy','မြန်မာဖော်ပြချက်',s.descriptionMy||'']]); if(!values)return;
-  const price=await customField('Edit service','Price',s.price);if(price===null)return;
-  const duration=Number(await customField('Edit service','Duration (minutes)',s.duration));if(!Number.isFinite(duration)||duration<=0){toast('Duration must be a positive number');return}
-  Object.assign(s,values,{price,duration});renderServices();updateStats();await saveRemote('services');
+function showRichEditor(title, subtitle, html, onSave){
+  ensureRichEditorStyles();
+  return new Promise(resolve=>{
+    const d=document.createElement('div');d.className='rich-editor-backdrop';
+    d.innerHTML=`<div class="rich-editor"><div class="rich-editor-head"><div><p class="eyebrow">CONTENT EDITOR</p><h3>${esc(title)}</h3><p>${esc(subtitle)}</p></div><button class="rich-editor-close" type="button">×</button></div><div class="rich-editor-body">${html}</div><div class="rich-actions"><button type="button" class="cancel">Cancel</button><button type="button" class="save">Save changes</button></div></div>`;
+    document.body.appendChild(d);
+    const close=()=>{d.remove();resolve(false)};
+    d.querySelector('.rich-editor-close').onclick=close;
+    d.querySelector('.cancel').onclick=close;
+    d.querySelector('.save').onclick=async()=>{await onSave(d);d.remove();resolve(true)};
+    d.addEventListener('click',e=>{if(e.target===d)close()});
+  });
+}
+function csvLines(value){return String(value||'').split(/\n+/).map(x=>x.trim()).filter(Boolean)}
+function listEditor(title, values){
+  const arr=Array.isArray(values)?values:[];
+  return `<div class="rich-section"><h4>${esc(title)}</h4><p class="rich-hint">One item per line. Keep the same number of lines across languages when possible.</p><div class="rich-grid"><div class="rich-field"><label>English</label><textarea data-list-key="en">${esc(arr.join('\n'))}</textarea></div><div class="rich-field"><label>中文</label><textarea data-list-key="zh">${esc(values.zh?.join('\n')||'')}</textarea></div><div class="rich-field"><label>မြန်မာ</label><textarea data-list-key="my">${esc(values.my?.join('\n')||'')}</textarea></div></div></div>`;
 }
 $('#addService').onclick=async()=>{
-  const values=await localizedEditor('Add service',[['name','English name','New Service'],['nameZh','中文名称','新服务'],['nameMy','မြန်မာအမည်','ဝန်ဆောင်မှုအသစ်'],['description','English description','Add a short description.'],['descriptionZh','中文描述','添加简短描述。'],['descriptionMy','မြန်မာဖော်ပြချက်','အတိုချုံးဖော်ပြချက် ထည့်ပါ။']]); if(!values)return;
-  const price=await customField('Add service','Price','From 00 MMK');if(price===null)return;const duration=Number(await customField('Add service','Duration (minutes)',60));if(!Number.isFinite(duration)||duration<=0){toast('Duration must be a positive number');return}
-  data.services.push({id:'service-'+Date.now(),...values,price,duration});renderServices();updateStats();await saveRemote('services');
+  data.services.push({id:'service-'+Date.now(),number:String(data.services.length+1).padStart(2,'0'),name:'New Service',title:'New Service',titleZh:'新服务',titleMy:'ဝန်ဆောင်မှုအသစ်',price:'From 00 MMK',duration:60,durationShort:'60 MIN',description:'Add a short description.',descriptionZh:'添加简短描述。',descriptionMy:'အကျဉ်းချုပ်ဖော်ပြချက် ထည့်ပါ။',kicker:'Service',kickerZh:'服务',kickerMy:'ဝန်ဆောင်မှု',tags:'Service, Detail, Personalized',tagsZh:'服务，细节，专属',tagsMy:'ဝန်ဆောင်မှု၊ အသေးစိတ်၊ စိတ်ကြိုက်',caption:'Made with care.',captionZh:'用心完成。',captionMy:'ဂရုတစိုက် ဖန်တီးပေးထားသည်။',idealFor:'Personalized care',idealForZh:'个性化护理',idealForMy:'စိတ်ကြိုက်ဂရုစိုက်မှု',points:['Studio preparation and finish','Estimated time: 60 minutes'],pointsZh:['工作室准备与收尾','预计时间：60 分钟'],pointsMy:['စတူဒီယို ပြင်ဆင်မှုနှင့် အချောသတ်','ခန့်မှန်းအချိန်: ၆၀ မိနစ်'],highlights:[['Service','Tailored studio service'],['60 min','Estimated appointment time'],['Detail','Personalized finish']],highlightsZh:[['服务','为你定制的工作室服务'],['60 分钟','预计预约时间'],['细节','专属收尾']],highlightsMy:[['ဝန်ဆောင်မှု','သင့်အတွက် စိတ်ကြိုက်ဝန်ဆောင်မှု'],['၆၀ မိနစ်','ခန့်မှန်းချိန်'],['အသေးစိတ်','စိတ်ကြိုက် အချောသတ်']]});
+  renderServices();updateStats();await saveRemote('services');
 };
 
 function renderGallery(){
@@ -276,7 +310,7 @@ function renderGallery(){
       <span class="image-badge">${g.image?'PHOTO':'NO PHOTO'}</span>
     </div>
     <div class="gallery-body">
-      <h3>${esc(g.title)}</h3><p>${esc(g.category)} · ${esc(g.description)}</p>
+      <h3>${esc(g.title)}</h3><p>${esc(g.category)} · ${esc(g.description||'')}</p>
       <div class="card-actions">
         <button class="mini" data-image-gallery="${i}">Photo</button>
         <button class="mini" data-edit-gallery="${i}">Edit</button>
@@ -291,13 +325,33 @@ function renderGallery(){
   });
 }
 async function editGallery(i){
-  const g=data.gallery[i];
-  const values=await localizedEditor('Edit look',[['title','English title',g.title||''],['titleZh','中文标题',g.titleZh||''],['titleMy','မြန်မာခေါင်းစဉ်',g.titleMy||''],['category','English category',g.category||'Simple'],['categoryZh','中文分类',g.categoryZh||''],['categoryMy','မြန်မာအမျိုးအစား',g.categoryMy||''],['description','English description',g.description||''],['descriptionZh','中文描述',g.descriptionZh||''],['descriptionMy','မြန်မာဖော်ပြချက်',g.descriptionMy||'']]); if(!values)return;
-  Object.assign(g,values);renderGallery();await saveRemote('gallery');
+  const g=data.gallery[i]; if(!g)return;
+  const html=`
+    <div class="rich-grid">
+      ${richInput('Work number','number',g.number||String(i+1).padStart(2,'0'))}
+      ${richInput('Category','category',g.category||'simple')}
+      ${richInput('Recommended service ID','recommendedService',g.recommendedService||'')}
+      ${richInput('Style name','styleName',g.styleName||g.title||'')}
+      ${richInput('Price note','priceNote',g.priceNote||'')}
+      ${richInput('Image URL (optional)','image',g.image&&String(g.image).startsWith('data:')?'':(g.image||''),'input','wide')}
+      ${richInput('Alt text','alt',g.alt||g.title||'Beauty Studio nail design','input','wide')}
+    </div>
+    ${langField('Title','title',{title:g.title||'',titleZh:g.titleZh||'',titleMy:g.titleMy||''})}
+    ${langField('Style / category label','style',{style:g.style||'',styleZh:g.styleZh||'',styleMy:g.styleMy||''})}
+    ${langField('Description','description',{description:g.description||'',descriptionZh:g.descriptionZh||'',descriptionMy:g.descriptionMy||''})}
+    ${langField('Mood','mood',{mood:g.mood||'',moodZh:g.moodZh||'',moodMy:g.moodMy||''})}
+    ${langField('Inspiration note','note',{note:g.note||'Love this look? Bring it as inspiration and the studio can fine-tune the details for you.',noteZh:g.noteZh||'喜欢这个款式？预约时可以把它作为灵感参考，工作室会根据你的需求微调细节。',noteMy:g.noteMy||'ဒီဒီဇိုင်းကို ကြိုက်ပါသလား။ လာရောက်ချိန်းဆိုချိန်တွင် နမူနာအဖြစ် ပြသနိုင်ပြီး အသေးစိတ်ကို သင့်စိတ်ကြိုက် ပြင်ဆင်ပေးနိုင်ပါသည်။'})}
+    <div class="rich-editor-note">The gallery photo file selected with the old Photo button is still browser-local. For a persistent D1 image, enter an image URL here. R2 upload can replace this later without changing the editor.</div>`;
+  await showRichEditor('Edit work','Everything shown in the work card and detail modal can be managed here.',html,async d=>{
+    readRichObject(d,g);
+    ['number','category','recommendedService','styleName','priceNote','image','alt'].forEach(k=>{const el=d.querySelector(`[data-rich-key="${k}"]`);if(el)g[k]=el.value.trim()});
+    if(!g.title)g.title='New Look';
+    renderGallery();updateStats();await saveRemote('gallery');
+  });
 }
 $('#addGallery').onclick=async()=>{
-  const values=await localizedEditor('Add look',[['title','English title','New Look'],['titleZh','中文标题','新作品'],['titleMy','မြန်မာခေါင်းစဉ်','လက်ရာအသစ်'],['category','English category','Simple'],['categoryZh','中文分类','简约'],['categoryMy','မြန်မာအမျိုးအစား','ရိုးရှင်း'],['description','English description','Add a description.'],['descriptionZh','中文描述','添加作品描述。'],['descriptionMy','မြန်မာဖော်ပြချက်','လက်ရာဖော်ပြချက် ထည့်ပါ။']]); if(!values)return;
-  data.gallery.push({id:Date.now(),...values,image:''});renderGallery();updateStats();await saveRemote('gallery');
+  data.gallery.push({id:Date.now(),number:String(data.gallery.length+1).padStart(2,'0'),title:'New Look',titleZh:'新款式',titleMy:'ဒီဇိုင်းအသစ်',style:'Simple · Gel',styleZh:'简约 · 凝胶',styleMy:'ရိုးရှင်း · ဂျယ်လ်',category:'simple',description:'A beautiful new studio look.',descriptionZh:'新的精致美甲款式。',descriptionMy:'စတူဒီယိုအတွက် လှပသော ဒီဇိုင်းအသစ်။',mood:'Soft & polished',moodZh:'柔和精致',moodMy:'နူးညံ့သပ်ရပ်',recommendedService:'gel',styleName:'New Look',priceNote:'Gel Manicure',note:'Love this look? Bring it as inspiration and the studio can fine-tune the details for you.',noteZh:'喜欢这个款式？预约时可以把它作为灵感参考。',noteMy:'ဒီဒီဇိုင်းကို ကြိုက်ပါသလား။ ချိန်းဆိုချိန်တွင် နမူနာအဖြစ် ပြသနိုင်ပါသည်။',image:'',alt:'Beauty Studio nail design'});
+  renderGallery();updateStats();await saveRemote('gallery');
 };
 
 const media=[['Hero','hero'],['Studio','studio'],['Owner portrait','ownerPortrait'],['Contact','contact'],['Social preview','socialPreview'],['TikTok','tiktok'],['WhatsApp','whatsapp'],['Telegram','telegram']];
@@ -341,10 +395,80 @@ function fillBooking(){
 }
 fillBooking();
 function updateStats(){
-  $('#statServices').textContent=data.services.length;
-  $('#statGallery').textContent=data.gallery.length;
-  $('#statBooking').textContent=data.booking.status==='open'?'Open':'Paused';
+  const s=$('#statServices'); if(s)s.textContent=data.services.length;
+  const g=$('#statGallery'); if(g)g.textContent=data.gallery.length;
+  const b=$('#statBooking'); if(b)b.textContent=data.booking.status==='open'?'Open':'Paused';
 }
+
+/* v74 — Admin dashboard */
+let dashboardLoaded=false;
+function dashboardDateKey(){
+  const d=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function dashboardGreeting(){
+  const h=new Date().getHours();
+  return h<12?'Good morning.':h<18?'Good afternoon.':'Good evening.';
+}
+function dashboardDateLabel(){
+  return new Date().toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});
+}
+function renderDashboardRows(bookings,supports){
+  const today=dashboardDateKey();
+  const todayRows=bookings.filter(b=>b.bookingDate===today).sort((a,b)=>String(a.bookingTime).localeCompare(String(b.bookingTime)));
+  const todayBox=$('#dashboardTodayList');
+  if(todayBox){
+    todayBox.innerHTML=todayRows.length?todayRows.map(b=>`<button class=\"dash-row\" data-dash-booking=\"${esc(b.id)}\"><span class=\"dash-time\">${esc(b.bookingTime||'—')}</span><span class=\"dash-main\"><strong>${esc(b.customerName||'Unnamed customer')}</strong><small>${esc(b.service||'Service')} · Customer ${esc(b.customerNumber||'—')}</small></span><span class=\"dash-status ${esc(b.status)}\">${esc(bookingStatusLabel(b.status))}</span></button>`).join(''):`<div class=\"dashboard-empty\">No bookings scheduled for today.</div>`;
+  }
+  const msgBox=$('#dashboardMessageList');
+  const recentMessages=[...supports].sort((a,b)=>new Date(b.updated_at||0)-new Date(a.updated_at||0)).slice(0,5);
+  if(msgBox){
+    msgBox.innerHTML=recentMessages.length?recentMessages.map(c=>`<button class=\"dash-row message\" data-dash-support=\"${esc(c.id)}\"><span class=\"dash-avatar\">${esc(String(c.customer_number||'—').slice(-2))}</span><span class=\"dash-main\"><strong>Customer ${esc(c.customer_number||'—')}</strong><small>${esc(c.last_message||'No messages yet')}</small></span>${Number(c.unread_admin||0)>0?`<span class=\"dash-unread\">${Number(c.unread_admin)>99?'99+':c.unread_admin}</span>`:`<span class=\"dash-time-small\">${esc(supportTime(c.updated_at))}</span>`}</button>`).join(''):`<div class=\"dashboard-empty\">No customer messages yet.</div>`;
+  }
+  const recentBox=$('#dashboardRecentBookings');
+  const recent=[...bookings].sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0)).slice(0,5);
+  if(recentBox){
+    recentBox.innerHTML=recent.length?recent.map(b=>`<button class=\"dash-row\" data-dash-booking=\"${esc(b.id)}\"><span class=\"dash-main\"><strong>${esc(b.customerName||'Unnamed customer')}</strong><small>${esc(formatBookingDate(b.bookingDate))} · ${esc(b.bookingTime||'—')} · ${esc(b.service||'Service')}</small></span><span class=\"dash-status ${esc(b.status)}\">${esc(bookingStatusLabel(b.status))}</span></button>`).join(''):`<div class=\"dashboard-empty\">No booking requests yet.</div>`;
+  }
+  $$('[data-dash-booking]').forEach(x=>x.onclick=()=>{showView('bookings');setTimeout(()=>showBookingDetail(x.dataset.dashBooking),120)});
+  $$('[data-dash-support]').forEach(x=>x.onclick=()=>{showView('support');setTimeout(()=>openSupportConversation(Number(x.dataset.dashSupport)),120)});
+}
+async function loadDashboard(){
+  if(!token())return;
+  const g=$('#dashboardGreeting'),d=$('#dashboardDate');
+  if(g)g.textContent=dashboardGreeting();
+  if(d)d.textContent=dashboardDateLabel();
+  const today=dashboardDateKey();
+  try{
+    const [br,sr]=await Promise.all([apiGet('/api/bookings?limit=100&t='+Date.now()),apiGet('/api/support/conversations?limit=100&t='+Date.now())]);
+    const bookings=br.ok&&Array.isArray(br.body?.data)?br.body.data.map(normalizeBooking):[];
+    const supports=sr.ok&&Array.isArray(sr.body?.conversations)?sr.body.conversations:[];
+    const todayRows=bookings.filter(b=>b.bookingDate===today);
+    const pending=bookings.filter(b=>b.status==='pending').length;
+    const unread=supports.reduce((n,c)=>n+Number(c.unread_admin||0),0);
+    const customers=new Set();
+    bookings.forEach(b=>{if(b.customerNumber)customers.add(String(b.customerNumber));else if(b.phone)customers.add('phone:'+b.phone)});
+    supports.forEach(c=>{if(c.customer_number)customers.add(String(c.customer_number));});
+    const a=$('#dashTodayBookings');if(a)a.textContent=todayRows.length;
+    const am=$('#dashTodayMeta');if(am)am.textContent=todayRows.length===1?'1 appointment today':`${todayRows.length} appointments today`;
+    const p=$('#dashPending');if(p)p.textContent=pending;
+    const u=$('#dashUnread');if(u)u.textContent=unread>99?'99+':unread;
+    const c=$('#dashCustomers');if(c)c.textContent=customers.size;
+    renderDashboardRows(bookings,supports);
+    dashboardLoaded=true;
+  }catch(e){
+    const ids=['dashTodayBookings','dashPending','dashUnread','dashCustomers'];ids.forEach(id=>{const x=$('#'+id);if(x)x.textContent='—'});
+  }
+}
+function ensureDashboardStyles(){
+  if($('#dashboardStyles'))return;
+  const s=document.createElement('style');s.id='dashboardStyles';s.textContent=`
+  .dashboard-hero{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;padding:28px 30px;background:linear-gradient(135deg,#fffaf6,#f3e5de);border:1px solid #dfd1c8;border-radius:24px;margin-bottom:16px}.dashboard-hero h2{font:500 clamp(28px,4vw,42px)/1.05 Georgia,serif;color:#302621;margin:5px 0 8px}.dashboard-hero p:not(.eyebrow){margin:0;color:#81746d;font-size:13px}.dashboard-date{padding:9px 13px;border:1px solid #dfd1c8;border-radius:999px;background:#fffaf6;color:#6f5e56;font-size:11px;white-space:nowrap}.dashboard-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}.dashboard-stat{border:1px solid #dfd1c8;border-radius:20px;background:#fffaf6;padding:18px;text-align:left;cursor:pointer;display:grid;gap:7px;transition:transform .16s ease,box-shadow .16s ease}.dashboard-stat:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(48,38,33,.08)}.dashboard-stat span{font-size:11px;color:#81746d}.dashboard-stat strong{font:500 30px Georgia,serif;color:#302621}.dashboard-stat small{font-size:10px;color:#a08e85}.dashboard-columns,.dashboard-bottom{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}.dashboard-panel{background:#fffaf6;border:1px solid #dfd1c8;border-radius:22px;overflow:hidden}.dashboard-panel-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:19px 20px 14px;border-bottom:1px solid rgba(125,91,79,.1)}.dashboard-panel-head h3{margin:3px 0 0;font:500 22px Georgia,serif;color:#302621}.text-action{border:0;background:transparent;color:#9b6c69;font-size:11px;font-weight:700;cursor:pointer;padding:5px 0}.dashboard-list{display:flex;flex-direction:column}.dash-row{width:100%;border:0;border-bottom:1px solid rgba(125,91,79,.08);background:transparent;padding:13px 18px;text-align:left;display:flex;align-items:center;gap:12px;cursor:pointer;color:inherit}.dash-row:last-child{border-bottom:0}.dash-row:hover{background:#f8eee8}.dash-time{min-width:50px;font-size:12px;font-weight:700;color:#6e5c54}.dash-main{min-width:0;flex:1;display:grid;gap:4px}.dash-main strong{font-size:12px;color:#302621;font-weight:650}.dash-main small{font-size:10px;color:#8a7971;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dash-status{font-size:9px;padding:6px 8px;border-radius:999px;background:#f0e5df;color:#6e5c54;white-space:nowrap}.dash-status.confirmed{background:#e7eee3;color:#5e7656}.dash-status.pending{background:#f4eadc;color:#8a6847}.dash-status.cancelled{background:#f2e1df;color:#945f5b}.dash-status.completed{background:#e8e4ed;color:#665b75}.dash-avatar{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#eadbd3;color:#6e5c54;font:700 10px Arial,sans-serif;flex:none}.dash-unread{min-width:20px;height:20px;padding:0 5px;border-radius:999px;display:grid;place-items:center;background:#9b6c69;color:#fff;font:700 9px Arial,sans-serif}.dash-time-small{font-size:9px;color:#9a8980;white-space:nowrap}.dashboard-empty{padding:28px 18px;text-align:center;color:#9a8980;font-size:11px}.dashboard-bottom .dashboard-panel{min-height:230px}.dashboard-actions .quick-grid{padding:14px}.dashboard-actions .quick-grid button{min-height:88px}@media(max-width:900px){.dashboard-stats{grid-template-columns:repeat(2,1fr)}.dashboard-columns,.dashboard-bottom{grid-template-columns:1fr}.dashboard-hero{padding:22px 20px}.dashboard-date{display:none}}@media(max-width:560px){.dashboard-stats{gap:8px}.dashboard-stat{padding:14px;border-radius:16px}.dashboard-stat strong{font-size:25px}.dashboard-panel-head{padding:16px}.dash-row{padding:12px 14px}.dash-status{font-size:8px}.dashboard-hero h2{font-size:30px}}
+  `;document.head.appendChild(s);
+}
+ensureDashboardStyles();
+$$('[data-dashboard-go]').forEach(b=>b.onclick=()=>showView(b.dataset.dashboardGo));
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 
 function ensureDialogStyles(){
@@ -358,20 +482,6 @@ function ensureDialogStyles(){
   .v3-dialog-actions .ok{background:#9b6c69;color:#fff}.v3-dialog-actions .cancel{background:#f0e6df;color:#302621}
   `;document.head.appendChild(s);
 }
-function localizedEditor(title,fields){
-  ensureDialogStyles();
-  return new Promise(resolve=>{
-
-    const st=document.createElement('style');st.textContent='.v3-localized-dialog{width:min(720px,calc(100vw - 32px))}.v3-localized-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;text-align:left}.v3-localized-grid label{display:flex;flex-direction:column;gap:6px;font-size:11px;color:#806b62}.v3-localized-grid input{width:100%;box-sizing:border-box;border:1px solid #ddd0c8;border-radius:10px;padding:10px;background:#fffaf7;color:#342722}@media(max-width:700px){.v3-localized-grid{grid-template-columns:1fr}}';document.head.appendChild(st);
-    const d=document.createElement('div');d.className='v3-dialog-backdrop';
-    d.innerHTML=`<div class="v3-dialog v3-localized-dialog"><h3>${esc(title)}</h3><p>Prepare English, 中文 and မြန်မာ text for the customer website.</p><div class="v3-localized-grid">${fields.map(([key,label,value])=>`<label><span>${esc(label)}</span><input data-local-key="${esc(key)}" value="${esc(value)}"></label>`).join('')}</div><div class="v3-dialog-actions"><button class="ok">Save</button><button class="cancel">Cancel</button></div></div>`;
-    document.body.appendChild(d);d.querySelector('input')?.focus();
-    d.querySelector('.ok').onclick=()=>{const out={};d.querySelectorAll('[data-local-key]').forEach(i=>out[i.dataset.localKey]=i.value.trim());d.remove();resolve(out)};
-    d.querySelector('.cancel').onclick=()=>{d.remove();resolve(null)};
-    d.addEventListener('keydown',e=>{if(e.key==='Escape')d.querySelector('.cancel')?.click()});
-  });
-}
-
 function customField(title,label,value){
   ensureDialogStyles();
   return new Promise(resolve=>{
@@ -536,6 +646,38 @@ async function changeBookingStatus(id){
   };
 }
 
+
+/* v74 — Admin Need Help inbox */
+let supportConversations=[];
+let activeSupportId=null;
+let supportPollTimer=null;
+
+function ensureSupportAdminStyles(){
+  if($('#supportAdminStyles'))return;
+  const s=document.createElement('style');s.id='supportAdminStyles';s.textContent=`
+    .nav-badge{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#9b6c69;color:#fff;font:700 9px Arial,sans-serif;margin-left:6px}.support-admin-layout{display:grid;grid-template-columns:minmax(260px,.8fr) minmax(0,1.7fr);gap:14px;min-height:560px}.support-conversation-list,.support-thread{background:#fffaf6;border:1px solid #dfd1c8;border-radius:20px;overflow:hidden}.support-conversation-list{display:flex;flex-direction:column;overflow:auto}.support-admin-item{border:0;border-bottom:1px solid rgba(125,91,79,.1);background:transparent;padding:15px 16px;text-align:left;cursor:pointer;display:grid;gap:5px}.support-admin-item:hover,.support-admin-item.active{background:#f6ece6}.support-admin-item strong{font:500 17px Georgia,serif;color:#302621}.support-admin-item small{color:#8b7b73;font-size:10px}.support-admin-item p{margin:0;color:#75675f;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.support-admin-item .unread{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:999px;background:#9b6c69;color:#fff;font:700 9px Arial,sans-serif;padding:0 5px}.support-thread{display:flex;flex-direction:column}.support-thread-head{padding:18px 20px;border-bottom:1px solid rgba(125,91,79,.1);display:flex;justify-content:space-between;gap:15px}.support-thread-head h3{margin:0;font:500 23px Georgia,serif;color:#302621}.support-thread-head p{margin:4px 0 0;color:#81746d;font-size:11px}.support-thread-head .status{border:1px solid #dfd1c8;border-radius:999px;background:#f3e9e3;padding:7px 10px;font-size:10px;color:#6e5c54}.support-thread-messages{flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:10px;background:linear-gradient(180deg,#fffaf6,#fbf4ef)}.support-admin-msg{max-width:76%;padding:11px 13px;border-radius:16px;display:grid;gap:4px}.support-admin-msg.customer{align-self:flex-start;background:#f0e3dc;color:#302621;border-bottom-left-radius:5px}.support-admin-msg.admin{align-self:flex-end;background:#302621;color:#fffaf6;border-bottom-right-radius:5px}.support-admin-msg small{font-size:9px;opacity:.65}.support-admin-msg p{margin:0;font-size:12px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}.support-thread-compose{display:flex;gap:8px;padding:12px;border-top:1px solid rgba(125,91,79,.1)}.support-thread-compose textarea{flex:1;resize:none;border:1px solid #dfd1c8;border-radius:14px;padding:11px 12px;background:#fff;outline:0;font:inherit;font-size:12px}.support-thread-compose button{border:0;border-radius:14px;background:#302621;color:#fff;padding:0 16px;font-weight:700;cursor:pointer}.support-admin-empty{display:grid;place-items:center;min-height:220px;padding:30px;text-align:center;color:#81746d;font-size:12px}.support-thread .support-admin-empty{flex:1}@media(max-width:900px){.support-admin-layout{grid-template-columns:1fr;min-height:auto}.support-conversation-list{max-height:280px}.support-thread{min-height:540px}}
+  `;document.head.appendChild(s);
+}
+function supportTime(v){try{return new Date(v).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}catch{return v||''}}
+function renderSupportConversations(){
+  ensureSupportAdminStyles();const list=$('#supportConversationList');if(!list)return;
+  if(!supportConversations.length){list.innerHTML='<div class="support-admin-empty">No customer conversations yet.<br>Messages from Need Help will appear here.</div>';return}
+  list.innerHTML=supportConversations.map(c=>`<button class="support-admin-item ${Number(c.id)===Number(activeSupportId)?'active':''}" data-support-id="${esc(c.id)}"><strong>Customer ${esc(c.customer_number||'—')}</strong><small>${esc(c.customer_name||'Unnamed')} · ${esc(c.customer_phone||'No phone')}</small><p>${esc(c.last_message||'No messages yet')}</p>${Number(c.unread_admin)>0?`<span class="unread">${Number(c.unread_admin)>99?'99+':c.unread_admin}</span>`:''}</button>`).join('');
+  $$('#supportConversationList [data-support-id]').forEach(b=>b.onclick=()=>openSupportConversation(Number(b.dataset.supportId)));
+}
+async function loadSupportConversations(){
+  ensureSupportAdminStyles();const list=$('#supportConversationList');if(!list)return;list.innerHTML='<div class="support-admin-empty">Loading conversations…</div>';
+  try{const r=await apiGet('/api/support/conversations?limit=100&t='+Date.now());if(!r.ok){list.innerHTML=`<div class="support-admin-empty">Unable to load messages · HTTP ${r.status}</div>`;return}supportConversations=Array.isArray(r.body?.conversations)?r.body.conversations:[];const unread=supportConversations.reduce((n,c)=>n+Number(c.unread_admin||0),0);const nb=$('#supportNavBadge');if(nb){nb.textContent=unread>99?'99+':String(unread);nb.hidden=unread<=0}renderSupportConversations();if(activeSupportId){const found=supportConversations.find(c=>Number(c.id)===Number(activeSupportId));if(found)await openSupportConversation(activeSupportId,true)}}catch(e){list.innerHTML='<div class="support-admin-empty">Unable to load messages. Please refresh.</div>'}
+}
+async function openSupportConversation(id,silent=false){
+  activeSupportId=id;renderSupportConversations();const thread=$('#supportThread');if(!thread)return;if(!silent)thread.innerHTML='<div class="support-admin-empty">Loading conversation…</div>';
+  try{const r=await apiGet('/api/support/conversations/'+encodeURIComponent(id)+'?t='+Date.now());if(!r.ok){thread.innerHTML='<div class="support-admin-empty">Conversation unavailable.</div>';return}const c=r.body.conversation||{};const msgs=r.body.messages||[];thread.innerHTML=`<div class="support-thread-head"><div><h3>Customer ${esc(c.customer_number||'—')}</h3><p>${esc(c.customer_name||'Unnamed')} · ${esc(c.customer_phone||'No phone')}</p></div><span class="status">${esc(c.status||'open')}</span></div><div class="support-thread-messages" id="activeSupportMessages">${msgs.length?msgs.map(m=>`<article class="support-admin-msg ${m.sender_type==='admin'?'admin':'customer'}"><small>${m.sender_type==='admin'?'Beauty Studio':'Customer'} · ${esc(supportTime(m.created_at))}</small><p>${esc(m.message)}</p></article>`).join(''):'<div class="support-admin-empty">No messages yet.</div>'}</div><form class="support-thread-compose" id="supportReplyForm"><textarea id="supportReplyInput" rows="2" maxlength="2000" placeholder="Reply to Customer ${esc(c.customer_number||'—')}…"></textarea><button type="submit">Reply →</button></form>`;
+    const box=$('#activeSupportMessages');if(box)box.scrollTop=box.scrollHeight;const f=$('#supportReplyForm');const inp=$('#supportReplyInput');f?.addEventListener('submit',async e=>{e.preventDefault();const message=inp.value.trim();if(!message)return;inp.disabled=true;try{const x=await apiFetch('/api/support/conversations/'+encodeURIComponent(id)+'/messages',{method:'POST',body:JSON.stringify({message})});if(x.ok){inp.value='';await openSupportConversation(id,true);await loadSupportConversations()}else toast(x.status===401?'ADMIN_TOKEN rejected':'Could not send reply')}catch{toast('Network error · Worker unavailable')}finally{inp.disabled=false;inp.focus()}});
+  }catch{thread.innerHTML='<div class="support-admin-empty">Unable to load conversation.</div>'}
+}
+$('#refreshSupport')?.addEventListener('click',loadSupportConversations);
+ensureSupportAdminStyles();
+
 function bindBookingUI(){
   $('#refreshBookings')?.addEventListener('click',loadBookings);
   $$('#bookingFilters [data-booking-filter]').forEach(btn=>btn.onclick=()=>{
@@ -547,120 +689,4 @@ function bindBookingUI(){
 bindBookingUI();
 
 installLoginUI;
-renderServices();renderGallery();renderMedia();updateStats();loadRemote();
-
-/* v73 — Customer Center + Need Help admin inbox */
-(() => {
-  let customerRows = [];
-  let selectedCustomerKey = '';
-  let customerFilter = 'all';
-  let selectedConversation = null;
-
-  const escC = v => String(v ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-  const fmtC = t => { try { return new Intl.DateTimeFormat(undefined,{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(t)); } catch { return t || '—'; } };
-
-  function customerStyles(){
-    if($('#customerCenterStyles')) return;
-    const s=document.createElement('style');s.id='customerCenterStyles';s.textContent=`
-      #view-customers .customer-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:18px 0 14px;flex-wrap:wrap}
-      #view-customers .customer-filters{display:flex;gap:7px;flex-wrap:wrap}
-      #view-customers .customer-filters button{border:1px solid #dfd1c8;background:#fffaf6;color:#5f514b;border-radius:999px;padding:8px 13px;cursor:pointer;font-size:12px}
-      #view-customers .customer-filters button.active{background:#302621;color:#fff;border-color:#302621}
-      .customer-admin-layout{display:grid;grid-template-columns:minmax(280px,.9fr) minmax(360px,1.35fr);gap:16px;align-items:start}
-      .customer-admin-list{display:grid;gap:10px}
-      .customer-card{border:1px solid #dfd1c8;background:#fffaf6;border-radius:18px;padding:15px 16px;cursor:pointer;transition:.18s ease;box-shadow:0 7px 24px rgba(55,35,28,.04)}
-      .customer-card:hover,.customer-card.active{border-color:#b88b80;transform:translateY(-1px);box-shadow:0 12px 30px rgba(55,35,28,.08)}
-      .customer-card-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.customer-card h3{margin:0;font:500 18px Georgia,serif;color:#302621}.customer-card-id{font-size:9px;letter-spacing:.14em;color:#9b6c69;font-weight:700}.customer-card p{margin:6px 0 0;color:#81746d;font-size:11px;line-height:1.55}.customer-card-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.customer-pill{font-size:9px;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:5px 8px;background:#f2e7df;color:#725b53}.customer-pill.unread{background:#9b6c69;color:#fff}.customer-pill.open{background:#e5eee1;color:#5e7555}.customer-pill.closed{background:#ece9e7;color:#756b66}
-      .customer-detail-panel{position:sticky;top:16px;border:1px solid #dfd1c8;background:#fffaf6;border-radius:22px;min-height:520px;overflow:hidden;box-shadow:0 10px 35px rgba(55,35,28,.05)}
-      .customer-detail-empty{min-height:520px;display:grid;place-items:center;text-align:center;padding:30px;color:#81746d;font-size:12px}
-      .customer-detail-head{padding:19px 20px 15px;border-bottom:1px solid #eaded7;display:flex;justify-content:space-between;gap:12px}.customer-detail-head h3{margin:2px 0 3px;font:500 24px Georgia,serif;color:#302621}.customer-detail-head p{margin:0;color:#81746d;font-size:11px}.customer-detail-close{width:32px;height:32px;border:1px solid #dfd1c8;border-radius:50%;background:#f3e9e3;color:#5f514b;cursor:pointer}
-      .customer-detail-tabs{display:flex;gap:7px;padding:12px 18px;border-bottom:1px solid #eaded7}.customer-detail-tabs button{border:1px solid #dfd1c8;background:#fff;color:#665851;border-radius:999px;padding:7px 11px;font-size:10px;cursor:pointer}.customer-detail-tabs button.active{background:#302621;color:#fff;border-color:#302621}
-      .customer-detail-body{padding:16px}.customer-booking-row{padding:12px;border:1px solid #e5d8d1;border-radius:14px;background:#fff;margin-bottom:8px}.customer-booking-row strong{display:block;color:#302621;font-size:13px}.customer-booking-row small{display:block;color:#81746d;font-size:10px;margin-top:4px}.customer-booking-status{display:inline-block;margin-top:7px;padding:4px 7px;border-radius:999px;font-size:8px;text-transform:uppercase;letter-spacing:.08em}.customer-booking-status.pending{background:#f2e7d9;color:#8c654f}.customer-booking-status.confirmed{background:#e4eee1;color:#59714f}.customer-booking-status.completed{background:#e6e8ed;color:#59606d}.customer-booking-status.cancelled{background:#f2dfdc;color:#975e58}
-      .support-admin-chat{height:350px;border:1px solid #e5d8d1;border-radius:17px;overflow:hidden;display:flex;flex-direction:column;background:#fbf5f0}.support-admin-messages{flex:1;overflow:auto;padding:13px;display:flex;flex-direction:column;gap:8px}.support-admin-message{max-width:82%;padding:9px 11px;border-radius:14px;display:grid;gap:3px}.support-admin-message.customer{align-self:flex-start;background:#fff;color:#302621;border:1px solid #e5d8d1;border-bottom-left-radius:4px}.support-admin-message.admin{align-self:flex-end;background:#302621;color:#fffaf6;border-bottom-right-radius:4px}.support-admin-message small{font-size:8px;opacity:.65}.support-admin-message p{margin:0;font-size:11px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}.support-admin-compose{display:flex;gap:7px;padding:9px;border-top:1px solid #e5d8d1;background:#fffaf6}.support-admin-compose textarea{flex:1;resize:none;border:1px solid #dfd1c8;border-radius:12px;padding:9px 10px;font:inherit;font-size:11px;min-height:40px}.support-admin-compose button{border:0;border-radius:12px;background:#302621;color:#fff;padding:0 13px;font-size:10px;font-weight:700;cursor:pointer}.support-admin-compose button:disabled{opacity:.55}
-      .customer-detail-section-title{margin:0 0 10px;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#9b6c69;font-weight:700}.customer-detail-contact{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:17px}.customer-detail-contact>div{padding:10px 11px;background:#f4ebe6;border-radius:12px}.customer-detail-contact small{display:block;color:#9a8981;font-size:8px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}.customer-detail-contact strong{display:block;color:#302621;font-size:11px;word-break:break-word}
-      @media(max-width:900px){.customer-admin-layout{grid-template-columns:1fr}.customer-detail-panel{position:relative;top:auto}.customer-detail-contact{grid-template-columns:1fr}}
-    `;document.head.appendChild(s);
-  }
-
-  function normalizeSupport(row){ return {...row, customerNumber:row.customer_number||'', customerKey:row.customer_browser_key||'', customerName:row.customer_name||'Unnamed customer', phone:row.customer_phone||''}; }
-  function buildCustomers(bookings, conversations){
-    const map=new Map();
-    (bookings||[]).forEach(b=>{
-      const key=b.customerBrowserKey||b.customer_browser_key||`number:${b.customerNumber||b.customer_number||b.phone||b.customerName}`;
-      const id=b.customerNumber||b.customer_number||'';
-      const cur=map.get(key)||{customerKey:key,customerNumber:id,customerName:b.customerName||b.customer_name||'Unnamed customer',phone:b.phone||'',bookings:[],conversation:null,lastActivity:b.createdAt||b.created_at||''};
-      cur.bookings.push(b);cur.customerNumber=cur.customerNumber||id;cur.customerName=cur.customerName==='Unnamed customer'?(b.customerName||'Unnamed customer'):cur.customerName;cur.phone=cur.phone||b.phone||'';cur.lastActivity=[cur.lastActivity,b.updatedAt||b.updated_at||b.createdAt||b.created_at||''].sort().pop()||'';map.set(key,cur);
-    });
-    (conversations||[]).forEach(raw=>{
-      const c=normalizeSupport(raw);const key=c.customerKey||`number:${c.customerNumber}`;const cur=map.get(key)||{customerKey:key,customerNumber:c.customerNumber,customerName:c.customerName||'Unnamed customer',phone:c.phone||'',bookings:[],conversation:null,lastActivity:c.updated_at||''};cur.conversation=c;cur.customerNumber=cur.customerNumber||c.customerNumber;cur.customerName=cur.customerName==='Unnamed customer'?(c.customerName||'Unnamed customer'):cur.customerName;cur.phone=cur.phone||c.phone||'';cur.lastActivity=[cur.lastActivity,c.updated_at||''].sort().pop()||'';map.set(key,cur);
-    });
-    return [...map.values()].sort((a,b)=>String(b.lastActivity).localeCompare(String(a.lastActivity)));
-  }
-
-  async function loadCustomerCenter(){
-    customerStyles();
-    const list=$('#customerList'),count=$('#customerCount');if(!list||!count)return;
-    list.innerHTML='<div class="booking-empty">Loading customers…</div>';
-    try{
-      const [br,cr]=await Promise.all([apiGet('/api/bookings?limit=100&t='+Date.now()),apiGet('/api/support/conversations?t='+Date.now())]);
-      const bookings=br.ok&&Array.isArray(br.body?.data)?br.body.data:[];
-      const conversations=cr.ok&&Array.isArray(cr.body?.data)?cr.body.data:[];
-      customerRows=buildCustomers(bookings,conversations);
-      renderCustomerList();
-      if(selectedCustomerKey){const found=customerRows.find(x=>x.customerKey===selectedCustomerKey);if(found)await selectCustomer(found,true);}
-    }catch(e){list.innerHTML='<div class="booking-empty">Unable to load customers. Please refresh.</div>';count.textContent='0 customers'}
-  }
-
-  function renderCustomerList(){
-    const list=$('#customerList'),count=$('#customerCount');if(!list||!count)return;
-    const rows=customerRows.filter(c=>customerFilter==='all'?true:customerFilter==='open'?c.conversation?.status==='open':Number(c.conversation?.unread_admin||0)>0);
-    count.textContent=`${rows.length} customer${rows.length===1?'':'s'}`;
-    if(!rows.length){list.innerHTML=`<div class="booking-empty">${customerRows.length?'No customers match this filter.':'No customers yet.'}</div>`;return;}
-    list.innerHTML=rows.map(c=>`<article class="customer-card ${c.customerKey===selectedCustomerKey?'active':''}" data-customer-key="${escC(c.customerKey)}"><div class="customer-card-top"><div><span class="customer-card-id">CUSTOMER ${escC(c.customerNumber||'—')}</span><h3>${escC(c.customerName||'Unnamed customer')}</h3></div><span class="customer-card-id">${escC(fmtC(c.lastActivity))}</span></div><p>${escC(c.phone||'No phone')} · ${c.bookings.length} booking${c.bookings.length===1?'':'s'}</p><div class="customer-card-meta">${c.conversation?.status?`<span class="customer-pill ${escC(c.conversation.status)}">${escC(c.conversation.status)} chat</span>`:''}${Number(c.conversation?.unread_admin||0)>0?`<span class="customer-pill unread">${Number(c.conversation.unread_admin)} unread</span>`:''}</div></article>`).join('');
-    $$('#customerList [data-customer-key]').forEach(el=>el.onclick=()=>{const c=customerRows.find(x=>x.customerKey===el.dataset.customerKey);if(c)selectCustomer(c)});
-  }
-
-  async function selectCustomer(c,quiet=false){
-    selectedCustomerKey=c.customerKey;renderCustomerList();
-    const detail=$('#customerDetail');if(!detail)return;
-    detail.innerHTML=`<div class="customer-detail-head"><div><span class="customer-card-id">CUSTOMER ${escC(c.customerNumber||'—')}</span><h3>${escC(c.customerName||'Unnamed customer')}</h3><p>${escC(c.phone||'No phone')}</p></div><button class="customer-detail-close" id="closeCustomerDetail">×</button></div><div class="customer-detail-tabs"><button class="active" data-customer-tab="overview">Overview</button><button data-customer-tab="chat">Need Help</button></div><div class="customer-detail-body" id="customerDetailBody"><div class="customer-detail-contact"><div><small>Customer ID</small><strong>${escC(c.customerNumber||'—')}</strong></div><div><small>Bookings</small><strong>${c.bookings.length}</strong></div></div><p class="customer-detail-section-title">Booking history</p>${c.bookings.length?c.bookings.map(b=>`<div class="customer-booking-row"><strong>${escC(b.service||'Service')}</strong><small>${escC(formatBookingDate(b.bookingDate||b.booking_date))} · ${escC(b.bookingTime||b.booking_time)} · ${escC(b.price||'Price on request')}</small><span class="customer-booking-status ${escC(b.status||'pending')}">${escC(b.status||'pending')}</span></div>`).join(''):'<div class="booking-empty">No bookings yet.</div>'}</div>`;
-    $('#closeCustomerDetail').onclick=()=>{selectedCustomerKey='';renderCustomerList();detail.innerHTML='<div class="customer-detail-empty">Select a customer to view bookings and messages.</div>'};
-    $$('#customerDetail [data-customer-tab]').forEach(btn=>btn.onclick=()=>{ $$('#customerDetail [data-customer-tab]').forEach(x=>x.classList.toggle('active',x===btn)); if(btn.dataset.customerTab==='chat')renderCustomerChat(c); else selectCustomer(c,true); });
-    if(!quiet && c.conversation?.unread_admin) await markAdminConversationRead(c.customerKey);
-  }
-
-  async function markAdminConversationRead(key){
-    // Reading is done server-side by the admin conversation GET so the badge is cleared when opened.
-    try{await apiGet('/api/support/conversation/'+encodeURIComponent(key)+'?markRead=1');}catch{}
-    const c=customerRows.find(x=>x.customerKey===key);if(c?.conversation)c.conversation.unread_admin=0;renderCustomerList();
-  }
-
-  async function renderCustomerChat(c){
-    const body=$('#customerDetailBody');if(!body)return;
-    body.innerHTML='<div class="booking-empty">Loading conversation…</div>';
-    try{
-      const r=await apiGet('/api/support/conversation/'+encodeURIComponent(c.customerKey)+'?t='+Date.now());
-      if(!r.ok){body.innerHTML='<div class="booking-empty">Could not load this conversation.</div>';return;}
-      selectedConversation=r.body;
-      const messages=Array.isArray(r.body?.messages)?r.body.messages:[];
-      body.innerHTML=`<p class="customer-detail-section-title">Need Help · Customer ${escC(r.body.customerNumber||c.customerNumber||'—')}</p><div class="support-admin-chat"><div class="support-admin-messages" id="supportAdminMessages">${messages.length?messages.map(m=>`<article class="support-admin-message ${m.sender_type==='admin'?'admin':'customer'}"><small>${m.sender_type==='admin'?'Beauty Studio':'Customer'} · ${escC(fmtC(m.created_at))}</small><p>${escC(m.message)}</p></article>`).join(''):'<div class="customer-detail-empty" style="min-height:180px">No messages yet.</div>'}</div><form class="support-admin-compose" id="supportAdminCompose"><textarea id="supportAdminInput" placeholder="Reply to this customer…" maxlength="2000"></textarea><button type="submit">Reply</button></form></div><div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="mini" id="toggleConversationStatus">${r.body.conversation?.status==='closed'?'Reopen conversation':'Close conversation'}</button></div>`;
-      const box=$('#supportAdminMessages');if(box)box.scrollTop=box.scrollHeight;
-      $('#supportAdminCompose').onsubmit=async e=>{e.preventDefault();const input=$('#supportAdminInput'),btn=e.currentTarget.querySelector('button'),message=input.value.trim();if(!message)return;btn.disabled=true;try{const rr=await apiFetch('/api/support/messages',{method:'POST',body:JSON.stringify({customerKey:c.customerKey,message})});if(rr.ok){input.value='';await renderCustomerChat(c);await loadCustomerCenter();}else toast(rr.status===401?'ADMIN_TOKEN rejected':'Could not send reply');}catch{toast('Network error · Worker unavailable')}finally{btn.disabled=false}};
-      $('#toggleConversationStatus').onclick=async()=>{const next=r.body.conversation?.status==='closed'?'open':'closed';const rr=await apiPut('/api/support/conversation/'+encodeURIComponent(c.customerKey),{status:next});if(rr.ok){toast(next==='closed'?'Conversation closed':'Conversation reopened');await loadCustomerCenter();await renderCustomerChat(c)}else toast('Could not update conversation')};
-      await markAdminConversationRead(c.customerKey);
-    }catch(e){body.innerHTML='<div class="booking-empty">Could not load this conversation.</div>'}
-  }
-
-  function bindCustomerCenter(){
-    $('#refreshCustomers')?.addEventListener('click',loadCustomerCenter);
-    $$('#customerFilters [data-customer-filter]').forEach(btn=>btn.onclick=()=>{customerFilter=btn.dataset.customerFilter;$$('#customerFilters [data-customer-filter]').forEach(x=>x.classList.toggle('active',x===btn));renderCustomerList()});
-  }
-
-  const originalShowView=window.showView;
-  // showView is a local function in the existing script, so patch the nav behavior directly.
-  $$('.nav-item[data-view="customers"]').forEach(btn=>btn.onclick=()=>{showView('customers');loadCustomerCenter()});
-  $('#refreshCustomers')?.addEventListener('click',loadCustomerCenter);
-  $$('#customerFilters [data-customer-filter]').forEach(btn=>btn.onclick=()=>{customerFilter=btn.dataset.customerFilter;$$('#customerFilters [data-customer-filter]').forEach(x=>x.classList.toggle('active',x===btn));renderCustomerList()});
-  window.__beautyStudioLoadCustomers=loadCustomerCenter;
-  customerStyles();
-})();
+renderServices();renderGallery();renderMedia();updateStats();loadDashboard();loadRemote();

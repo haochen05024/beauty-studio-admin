@@ -29,11 +29,22 @@
 <main class="main">
 <header class="topbar"><button class="menu" id="menu">☰</button><div><p class="eyebrow">BEAUTY STUDIO</p><h1 id="pageTitle">Overview</h1></div><button class="preview" id="preview">Open customer site ↗</button></header>
 
-<section id="view-overview" class="view active">
-<div class="hero-card"><div><p class="eyebrow">CONTROL CENTER</p><h2>Your studio, in one place.</h2><p>Manage the content that syncs to the customer website through Cloudflare Worker and D1.</p><button class="primary" data-go="content">Edit studio content →</button></div><div class="hero-number">01</div></div>
-<div class="stats"><article><span>Services</span><strong id="statServices">3</strong></article><article><span>Gallery looks</span><strong id="statGallery">5</strong></article><article><span>Media slots</span><strong>8</strong></article><article><span>Booking</span><strong id="statBooking">Open</strong></article></div>
-<div class="section-head"><div><p class="eyebrow">QUICK ACTIONS</p><h3>Keep the studio fresh.</h3></div></div>
-<div class="quick-grid"><button data-go="gallery"><b>＋</b><span>Add a new look</span><small>Gallery</small></button><button data-go="services"><b>✦</b><span>Update a service</span><small>Pricing & timing</small></button><button data-go="media"><b>▧</b><span>Replace a photo</span><small>Media library</small></button><button data-go="booking"><b>◷</b><span>Adjust availability</span><small>Booking rules</small></button></div>
+<section id="view-overview" class="view">
+<div class="dashboard-hero"><div><p class="eyebrow">CONTROL CENTER</p><h2 id="dashboardGreeting">Good morning.</h2><p>Everything happening in your studio, at a glance.</p></div><div class="dashboard-date" id="dashboardDate">Today</div></div>
+<div class="dashboard-stats">
+  <button class="dashboard-stat" data-dashboard-go="bookings"><span>Today's bookings</span><strong id="dashTodayBookings">—</strong><small id="dashTodayMeta">Loading…</small></button>
+  <button class="dashboard-stat" data-dashboard-go="bookings"><span>Pending requests</span><strong id="dashPending">—</strong><small>Need your review</small></button>
+  <button class="dashboard-stat" data-dashboard-go="support"><span>Unread messages</span><strong id="dashUnread">—</strong><small>From Need Help</small></button>
+  <button class="dashboard-stat" data-dashboard-go="support"><span>Customers</span><strong id="dashCustomers">—</strong><small>Seen in bookings & messages</small></button>
+</div>
+<div class="dashboard-columns">
+  <section class="dashboard-panel"><div class="dashboard-panel-head"><div><p class="eyebrow">TODAY</p><h3>Today's schedule</h3></div><button class="text-action" data-dashboard-go="bookings">View all →</button></div><div id="dashboardTodayList" class="dashboard-list"><div class="dashboard-empty">Loading today's bookings…</div></div></section>
+  <section class="dashboard-panel"><div class="dashboard-panel-head"><div><p class="eyebrow">CUSTOMER CARE</p><h3>Recent messages</h3></div><button class="text-action" data-dashboard-go="support">Open inbox →</button></div><div id="dashboardMessageList" class="dashboard-list"><div class="dashboard-empty">Loading messages…</div></div></section>
+</div>
+<div class="dashboard-bottom">
+  <section class="dashboard-panel"><div class="dashboard-panel-head"><div><p class="eyebrow">RECENT ACTIVITY</p><h3>Latest booking requests</h3></div><button class="text-action" data-dashboard-go="bookings">Manage →</button></div><div id="dashboardRecentBookings" class="dashboard-list compact"><div class="dashboard-empty">Loading activity…</div></div></section>
+  <section class="dashboard-panel dashboard-actions"><div class="dashboard-panel-head"><div><p class="eyebrow">QUICK ACTIONS</p><h3>Keep the studio fresh.</h3></div></div><div class="quick-grid"><button data-go="gallery"><b>＋</b><span>Add a new look</span><small>Gallery</small></button><button data-go="services"><b>✦</b><span>Update a service</span><small>Pricing & timing</small></button><button data-go="media"><b>▧</b><span>Replace a photo</span><small>Media library</small></button><button data-go="booking"><b>◷</b><span>Adjust availability</span><small>Booking rules</small></button></div></section>
+</div>
 </section>
 
 <section id="view-content" class="view"><div class="section-head"><div><p class="eyebrow">STUDIO PROFILE</p><h2>Studio Content</h2><p>These details are stored in D1 and become the single source of truth.</p></div><button class="primary save">Save changes</button></div><form class="panel form-grid" id="contentForm"><label>Studio name<input name="studioName"></label><label>City<input name="city"></label><label class="wide">Address<input name="address"></label><label>Phone<input name="phone"></label><label>Hours<input name="hours"></label><label>TikTok<input name="tiktok" placeholder="https://www.tiktok.com/@yourstudio"></label><label>WhatsApp<input name="whatsapp" placeholder="https://wa.me/..."></label><label>Telegram<input name="telegram" placeholder="https://t.me/..."></label><label class="wide">Booking message<textarea name="bookingMessage"></textarea></label></form></section>
