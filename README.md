@@ -41,3 +41,10 @@ Deployment:
 - Existing translations are preserved; only empty target fields are filled.
 - Added a lightweight public translation endpoint for the editor; manual edits remain supported.
 - Bumped the service-worker cache to v83.
+
+
+## v84 — Admin interface language switcher
+- Added English / 中文 / မြန်မာ selector in the Admin top bar.
+- Language preference persists in localStorage.
+- Translates the Admin interface labels without changing D1 content data.
+- Customer site, Worker, D1 schema, and Admin token are unchanged.
